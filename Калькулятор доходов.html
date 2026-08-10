@@ -143,6 +143,7 @@
                             x-model="selectedCategoryId" 
                             class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
                         >
+                            <option value="" x-show="categories.length === 0" disabled selected>-- Нет категорий (нажмите "+ Создать") --</option>
                             <template x-for="cat in categories" :key="cat.id">
                                 <option :value="cat.id" x-text="`${cat.name} (FBW: ${cat.commissionFbw}%, FBS: ${cat.commissionFbs}%)`"></option>
                             </template>
@@ -913,16 +914,7 @@
                 },
 
                 loadDefaultCategories() {
-                    this.categories = [
-                        { id: 1, name: 'Одежда и аксессуары', commissionFbw: 25.0, commissionFbs: 23.0 },
-                        { id: 2, name: 'Обувь', commissionFbw: 23.0, commissionFbs: 21.5 },
-                        { id: 3, name: 'Электроника и бытовая техника', commissionFbw: 15.0, commissionFbs: 13.5 },
-                        { id: 4, name: 'Косметика и уход', commissionFbw: 17.5, commissionFbs: 16.0 },
-                        { id: 5, name: 'Товары для дома и кухни', commissionFbw: 19.0, commissionFbs: 17.5 },
-                        { id: 6, name: 'Детские игрушки', commissionFbw: 19.0, commissionFbs: 18.0 },
-                        { id: 7, name: 'Спортивные товары', commissionFbw: 17.0, commissionFbs: 15.5 },
-                        { id: 8, name: 'Книги и канцелярия', commissionFbw: 10.0, commissionFbs: 9.0 }
-                    ];
+                    this.categories = [];
                     this.saveCategoriesToStorage();
                 },
 
@@ -1094,8 +1086,12 @@
                 },
 
                 openEditModal() {
+                    if (this.categories.length === 0 || !this.selectedCategoryId) {
+                        this.showToast('Сначала создайте категорию!', 'fa-triangle-exclamation');
+                        return;
+                    }
                     const cat = this.selectedCategory;
-                    if (!cat) return;
+                    if (!cat || !cat.id) return;
                     this.modalMode = 'edit';
                     this.editingCategoryId = cat.id;
                     this.newCatName = cat.name;
@@ -1149,8 +1145,8 @@
                 },
 
                 confirmDeleteCategory() {
-                    if (this.categories.length <= 1) {
-                        this.showToast('Нельзя удалить единственную оставшуюся категорию!', 'fa-triangle-exclamation');
+                    if (this.categories.length === 0 || !this.selectedCategoryId) {
+                        this.showToast('Нет категорий для удаления!', 'fa-triangle-exclamation');
                         return;
                     }
                     this.showDeleteConfirm = true;
@@ -1168,8 +1164,12 @@
                         this.saveCategoriesToStorage();
 
                         // Automatically redirect to closest active item
-                        const nextIndex = index === 0 ? 0 : index - 1;
-                        this.selectedCategoryId = this.categories[nextIndex].id;
+                        if (this.categories.length > 0) {
+                            const nextIndex = Math.max(0, index - 1);
+                            this.selectedCategoryId = this.categories[nextIndex].id;
+                        } else {
+                            this.selectedCategoryId = null;
+                        }
                         
                         this.showToast('Категория успешно удалена', 'fa-trash-can');
                     }
