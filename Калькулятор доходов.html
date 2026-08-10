@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор доходов Wildberries</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Alpine.js for effortless state management -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom configuration & Tailwind styles -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        wb: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            950: '#4a044e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        /* Smooth transitions */
+        .transition-all-custom {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased" x-data="calculatorApp()">
+
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <div class="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-2.5">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 shadow-md shadow-purple-200">
+                    <i class="fa-solid fa-calculator text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-slate-900 sm:text-lg">WB Income Pro</h1>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold -mt-1">Калькулятор юнит-экономики FBW / FBS</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button 
+                    @click="resetForm()" 
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                    title="Сбросить все поля для текущей категории">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span class="hidden sm:inline">Сбросить поля</span>
+                </button>
+                <button 
+                    @click="copySummary()" 
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition-colors shadow-sm shadow-slate-950/10">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Скопировать отчет</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        
+        <!-- Toast Notification Alert -->
+        <div 
+            x-show="toast.show" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-4"
+            x-cloak
+            class="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl shadow-slate-950/20"
+        >
+            <i class="fa-solid text-emerald-400" :class="toast.icon"></i>
+            <span x-text="toast.message"></span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
+            
+            <section class="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-purple-600"></i>
+                        Параметры товара
+                    </h2>
+                    <span class="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Параметры</span>
+                </div>
+
+                <!-- Input: Category selection with Edit & Delete actions -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label for="category" class="block text-xs font-semibold text-slate-700">Категория товара</label>
+                        <div class="flex items-center gap-2">
+                            <button 
+                                @click="openCreateModal()" 
+                                class="text-[11px] text-purple-600 hover:text-purple-700 font-medium flex items-center gap-0.5 transition-colors"
+                                title="Создать новую категорию"
+                            >
+                                <i class="fa-solid fa-plus-circle"></i> Создать
+                            </button>
+                            <span class="text-slate-300 text-xs">|</span>
+                            <button 
+                                @click="openEditModal()" 
+                                class="text-[11px] text-slate-600 hover:text-purple-700 font-medium flex items-center gap-0.5 transition-colors"
+                                title="Редактировать текущую категорию"
+                            >
+                                <i class="fa-solid fa-pen-to-square"></i> Изменить
+                            </button>
+                            <span class="text-slate-300 text-xs">|</span>
+                            <button 
+                                @click="confirmDeleteCategory()" 
+                                class="text-[11px] text-rose-600 hover:text-rose-700 font-medium flex items-center gap-0.5 transition-colors"
+                                title="Удалить текущую категорию"
+                            >
+                                <i class="fa-solid fa-trash-can"></i> Удалить
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <select 
+                            id="category" 
+                            x-model="selectedCategoryId" 
+                            class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                        >
+                            <template x-for="cat in categories" :key="cat.id">
+                                <option :value="cat.id" x-text="`${cat.name} (FBW: ${cat.commissionFbw}%, FBS: ${cat.commissionFbs}%)`"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Model selection -->
+                <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <span class="block text-xs font-semibold text-slate-700">Модель продаж (Комиссия)</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="relative flex items-center justify-center p-2 rounded-lg border cursor-pointer transition-all"
+                            :class="saleModel === 'fbw' ? 'bg-purple-50 border-purple-300 text-purple-700 ring-1 ring-purple-300' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'">
+                            <input type="radio" name="saleModel" value="fbw" x-model="saleModel" class="sr-only">
+                            <span class="text-xs font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-cubes text-[10px]"></i>
+                                FBW (<span x-text="selectedCategory.commissionFbw"></span>%)
+                            </span>
+                        </label>
+                        <label class="relative flex items-center justify-center p-2 rounded-lg border cursor-pointer transition-all"
+                            :class="saleModel === 'fbs' ? 'bg-purple-50 border-purple-300 text-purple-700 ring-1 ring-purple-300' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'">
+                            <input type="radio" name="saleModel" value="fbs" x-model="saleModel" class="sr-only">
+                            <span class="text-xs font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-truck-ramp-box text-[10px]"></i>
+                                FBS (<span x-text="selectedCategory.commissionFbs"></span>%)
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Input: Retail Price -->
+                <div class="space-y-1.5">
+                    <label for="price" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Розничная цена (выручка)</span>
+                        <span class="text-[10px] font-normal text-slate-400">₽ на сайте WB</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                            <span class="text-slate-400 text-sm">₽</span>
+                        </div>
+                        <input 
+                            type="number" 
+                            id="price" 
+                            x-model.number="price" 
+                            min="0"
+                            class="block w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                            placeholder="0"
+                        >
+                    </div>
+                </div>
+
+                <!-- Input: SPP Discount % -->
+                <div class="space-y-1.5 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
+                    <label for="sppPercent" class="block text-xs font-semibold text-purple-900 flex justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-percent text-purple-600 text-[10px]"></i>
+                            <span>Скидка СПП (%)</span>
+                        </span>
+                        <span class="text-[10px] font-normal text-purple-700" x-text="`≈ -${formatRub(sppRub)}`">0 ₽</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="number" 
+                            id="sppPercent" 
+                            x-model.number="sppPercent" 
+                            min="0"
+                            max="100"
+                            step="any"
+                            class="block w-full rounded-xl border border-purple-200 bg-white pr-10 pl-3.5 py-2 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                            placeholder="15"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                            <span class="text-slate-400 text-sm">%</span>
+                        </div>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="50" 
+                        x-model.number="sppPercent" 
+                        class="w-full h-1 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                    >
+                    <div class="flex items-center justify-between pt-1.5 text-xs border-t border-purple-100/80 mt-2">
+                        <span class="text-slate-600 text-[11px]">Цена для покупателя:</span>
+                        <span class="font-bold text-purple-700 text-sm" x-text="formatRub(buyerPrice)"></span>
+                    </div>
+                </div>
+
+                <!-- Input: Self Cost -->
+                <div class="space-y-1.5">
+                    <label for="selfCost" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Себестоимость товара</span>
+                        <span class="text-[10px] font-normal text-slate-400">Закупка + упаковка</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                            <span class="text-slate-400 text-sm">₽</span>
+                        </div>
+                        <input 
+                            type="number" 
+                            id="selfCost" 
+                            x-model.number="selfCost" 
+                            min="0"
+                            class="block w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                            placeholder="0"
+                        >
+                    </div>
+                </div>
+
+                <!-- Input: Logistics % -->
+                <div class="space-y-1.5">
+                    <label for="logisticsPercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Логистика WB (%)</span>
+                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(logisticsRub)}`">0 ₽</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="number" 
+                            id="logisticsPercent" 
+                            x-model.number="logisticsPercent" 
+                            min="0"
+                            max="100"
+                            step="any"
+                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                            placeholder="0"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                            <span class="text-slate-400 text-sm">%</span>
+                        </div>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="50" 
+                        x-model.number="logisticsPercent" 
+                        class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                    >
+                </div>
+
+                <!-- Input: Storage % -->
+                <div class="space-y-1.5">
+                    <label for="storagePercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Хранение WB (%)</span>
+                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(storageRub)}`">0 ₽</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="number" 
+                            id="storagePercent" 
+                            x-model.number="storagePercent" 
+                            min="0"
+                            max="100"
+                            step="any"
+                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                            placeholder="0"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                            <span class="text-slate-400 text-sm">%</span>
+                        </div>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="20" 
+                        x-model.number="storagePercent" 
+                        class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                    >
+                </div>
+
+                <!-- Input: Marketing Promo % -->
+                <div class="space-y-1.5">
+                    <label for="promoPercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Доля расходов на продвижение</span>
+                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(promoRub)}`">0 ₽</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="number" 
+                            id="promoPercent" 
+                            x-model.number="promoPercent" 
+                            min="0"
+                            max="100"
+                            step="any"
+                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                            placeholder="0"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                            <span class="text-slate-400 text-sm">%</span>
+                        </div>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        x-model.number="promoPercent" 
+                        class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                    >
+                </div>
+
+                <!-- Input: Other expenses -->
+                <div class="space-y-1.5">
+                    <label for="otherExpenses" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Прочие расходы на единицу</span>
+                        <span class="text-[10px] font-normal text-slate-400">Брак, накладные, фулфилмент</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                            <span class="text-slate-400 text-sm">₽</span>
+                        </div>
+                        <input 
+                            type="number" 
+                            id="otherExpenses" 
+                            x-model.number="otherExpenses" 
+                            min="0"
+                            class="block w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                            placeholder="0"
+                        >
+                    </div>
+                </div>
+
+                <!-- Input: Tax % -->
+                <div class="space-y-1.5">
+                    <label for="taxPercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                        <span>Налог</span>
+                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(taxRub)}`">0 ₽</span>
+                    </label>
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="number" 
+                            id="taxPercent" 
+                            x-model.number="taxPercent" 
+                            min="0"
+                            max="100"
+                            step="any"
+                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                            placeholder="6"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                            <span class="text-slate-400 text-sm">%</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-relaxed italic">
+                        *Налог рассчитывается от розничной цены (выручки) до вычета комиссий WB.
+                    </p>
+                </div>
+            </section>
+
+            <section class="lg:col-span-8 space-y-6">
+                
+                <!-- KPI Dashboard widgets -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Net Profit KPI Card -->
+                    <div class="relative overflow-hidden rounded-2xl border bg-white p-5 transition-all-custom shadow-sm" :class="profit >= 0 ? 'border-emerald-100 shadow-emerald-50/20' : 'border-rose-100 shadow-rose-50/20'">
+                        <div class="absolute -right-3 -top-3 text-slate-50 opacity-10">
+                            <i class="fa-solid fa-coins text-8xl"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Чистая прибыль</p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl" :class="profit >= 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="formatRub(profit)"></p>
+                        <span class="inline-flex mt-2 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold" :class="profit >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">
+                            <i class="fa-solid" :class="profit >= 0 ? 'fa-trending-up' : 'fa-trending-down'"></i>
+                            <span x-text="profit >= 0 ? 'Прибыльный товар' : 'Убыточный товар'"></span>
+                        </span>
+                    </div>
+
+                    <!-- Buyer Price KPI Card -->
+                    <div class="relative overflow-hidden rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/60 via-white to-white p-5 shadow-sm">
+                        <div class="absolute -right-2 -top-2 text-purple-900 opacity-5">
+                            <i class="fa-solid fa-tags text-8xl"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-purple-700 uppercase tracking-wide">Цена для покупателя</p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-purple-950 sm:text-3xl" x-text="formatRub(buyerPrice)"></p>
+                        <span class="inline-flex mt-2 items-center gap-1 rounded-full bg-purple-100 text-purple-800 px-2 py-0.5 text-[10px] font-bold">
+                            <span>СПП <span x-text="`${sppPercent || 0}%`"></span> (-<span x-text="formatRub(sppRub)"></span>)</span>
+                        </span>
+                    </div>
+
+                    <!-- Margin Card -->
+                    <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Маржинальность</p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${margin}%`"></p>
+                        <span class="inline-flex mt-2 items-center gap-1 rounded-full bg-slate-50 text-slate-600 px-2 py-0.5 text-[10px] font-bold">
+                            Доля чистой прибыли
+                        </span>
+                    </div>
+
+                    <!-- ROI Card -->
+                    <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Рентабельность ROI</p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${roi}%`"></p>
+                        <span class="inline-flex mt-2 items-center gap-1 rounded-full bg-slate-50 text-slate-600 px-2 py-0.5 text-[10px] font-bold">
+                            Окупаемость вложений
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3.5">Распределение выручки на 1 единицу</h3>
+                    
+                    <div class="relative h-6 w-full overflow-hidden rounded-full bg-slate-100 flex shadow-inner">
+                        <!-- Comm -->
+                        <div x-show="commissionRub > 0" :style="`width: ${getPercentOfTotal(commissionRub)}%`" class="bg-purple-500 hover:opacity-90 transition-all duration-300 relative group" :title="`Комиссия: ${getPercentOfTotal(commissionRub)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(commissionRub)}%`"></span>
+                        </div>
+                        <!-- SelfCost -->
+                        <div x-show="selfCost > 0" :style="`width: ${getPercentOfTotal(selfCost)}%`" class="bg-slate-700 hover:opacity-90 transition-all duration-300 relative" :title="`Себестоимость: ${getPercentOfTotal(selfCost)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(selfCost)}%`"></span>
+                        </div>
+                        <!-- Logistics -->
+                        <div x-show="logisticsRub > 0" :style="`width: ${getPercentOfTotal(logisticsRub)}%`" class="bg-teal-500 hover:opacity-90 transition-all duration-300 relative" :title="`Логистика: ${getPercentOfTotal(logisticsRub)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(logisticsRub)}%`"></span>
+                        </div>
+                        <!-- Storage -->
+                        <div x-show="storageRub > 0" :style="`width: ${getPercentOfTotal(storageRub)}%`" class="bg-sky-400 hover:opacity-90 transition-all duration-300 relative" :title="`Хранение: ${getPercentOfTotal(storageRub)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(storageRub)}%`"></span>
+                        </div>
+                        <!-- Promo -->
+                        <div x-show="promoRub > 0" :style="`width: ${getPercentOfTotal(promoRub)}%`" class="bg-amber-500 hover:opacity-90 transition-all duration-300 relative" :title="`Продвижение: ${getPercentOfTotal(promoRub)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(promoRub)}%`"></span>
+                        </div>
+                        <!-- Other -->
+                        <div x-show="otherExpenses > 0" :style="`width: ${getPercentOfTotal(otherExpenses)}%`" class="bg-blue-500 hover:opacity-90 transition-all duration-300 relative" :title="`Прочее: ${getPercentOfTotal(otherExpenses)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(otherExpenses)}%`"></span>
+                        </div>
+                        <!-- Tax -->
+                        <div x-show="taxRub > 0" :style="`width: ${getPercentOfTotal(taxRub)}%`" class="bg-red-500 hover:opacity-90 transition-all duration-300 relative" :title="`Налог: ${getPercentOfTotal(taxRub)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(taxRub)}%`"></span>
+                        </div>
+                        <!-- Profit -->
+                        <div x-show="profit > 0" :style="`width: ${getPercentOfTotal(profit)}%`" class="bg-emerald-500 hover:opacity-90 transition-all duration-300 relative" :title="`Прибыль: ${getPercentOfTotal(profit)}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(profit)}%`"></span>
+                        </div>
+                    </div>
+
+                    <!-- Legend items -->
+                    <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-medium text-slate-500">
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-purple-500 inline-block"></span>
+                            <span>Комиссия WB (<span x-text="`${currentCommissionPercent}%`"></span>)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-slate-700 inline-block"></span>
+                            <span>Себестоимость</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-teal-500 inline-block"></span>
+                            <span>Логистика</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-sky-400 inline-block"></span>
+                            <span>Хранение</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-amber-500 inline-block"></span>
+                            <span>Продвижение</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-blue-500 inline-block"></span>
+                            <span>Прочие расходы</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-red-500 inline-block"></span>
+                            <span>Налог (<span x-text="`${taxPercent}%`"></span>)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-emerald-500 inline-block"></span>
+                            <span class="text-emerald-700 font-semibold">Чистая прибыль</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-5 py-4">
+                        <h3 class="text-sm font-bold text-slate-950 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-purple-600"></i>
+                            Детализация юнит-экономики
+                        </h3>
+                        <span class="text-xs bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full font-semibold" x-text="`${selectedCategory.name} (${saleModel.toUpperCase()})`"></span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                <tr>
+                                    <th scope="col" class="px-5 py-3">Статья расходов</th>
+                                    <th scope="col" class="px-5 py-3 text-right">Формула / База</th>
+                                    <th scope="col" class="px-5 py-3 text-right">Процент</th>
+                                    <th scope="col" class="px-5 py-3 text-right">Сумма на шт.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <!-- Price Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Розничная цена (выручка)</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Стартовая розничная цена</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500 font-semibold">100%</td>
+                                    <td class="px-5 py-3.5 text-right font-semibold text-slate-900" x-text="formatRub(price)"></td>
+                                </tr>
+
+                                <!-- SPP & Buyer Price Row -->
+                                <tr class="hover:bg-purple-50/50 transition-colors bg-purple-50/20">
+                                    <td class="px-5 py-3.5 font-semibold text-purple-950 flex items-center gap-1.5">
+                                        <span>Цена для покупателя (с СПП)</span>
+                                        <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">СПП <span x-text="`${sppPercent || 0}%`"></span></span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-purple-700" x-text="`Роз. цена - СПП (-${formatRub(sppRub)})`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-purple-700 font-semibold" x-text="`${Math.max(0, 100 - (sppPercent || 0))}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-bold text-purple-900" x-text="formatRub(buyerPrice)"></td>
+                                </tr>
+
+                                <!-- Commission Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900 flex items-center gap-1.5">
+                                        <span>Комиссия WB</span>
+                                        <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded" x-text="saleModel.toUpperCase()"></span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="`Для модели ${saleModel.toUpperCase()}`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentCommissionPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(commissionRub)}`"></td>
+                                </tr>
+
+                                <!-- Cost of Goods Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Себестоимость товара</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Производство, закупка, упаковка</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${getPercentOfTotal(selfCost)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(selfCost)}`"></td>
+                                </tr>
+
+                                <!-- Logistics Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Логистика WB</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Доставка до покупателя + возвраты</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${logisticsPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(logisticsRub)}`"></td>
+                                </tr>
+
+                                <!-- Storage Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Хранение на складах</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Плата за объём хранения в день</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${storagePercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(storageRub)}`"></td>
+                                </tr>
+
+                                <!-- Marketing Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Реклама и продвижение</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Внутреннее продвижение WB</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${promoPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(promoRub)}`"></td>
+                                </tr>
+
+                                <!-- Other Expenses Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Прочие издержки</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Брак, накладные расходы</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${getPercentOfTotal(otherExpenses)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(otherExpenses)}`"></td>
+                                </tr>
+
+                                <!-- Tax Row -->
+                                <tr class="hover:bg-slate-50/40 transition-colors">
+                                    <td class="px-5 py-3.5 font-medium text-slate-900">Налог</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="`Налог по ставке ${taxPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${taxPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(taxRub)}`"></td>
+                                </tr>
+
+                                <!-- Total Expense row -->
+                                <tr class="bg-slate-50/30">
+                                    <td class="px-5 py-3.5 font-semibold text-slate-900">Итого расходы</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Всего затрат на 1 шт.</td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500 font-semibold" x-text="`${getPercentOfTotal(totalExpenses)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right font-bold text-slate-900" x-text="formatRub(totalExpenses)"></td>
+                                </tr>
+
+                                <!-- Profit row -->
+                                <tr :class="profit >= 0 ? 'bg-emerald-50/50' : 'bg-rose-50/50'">
+                                    <td class="px-5 py-4 font-bold text-slate-950">Итого чистая прибыль</td>
+                                    <td class="px-5 py-4 text-right text-xs text-slate-500 font-semibold" :class="profit >= 0 ? 'text-emerald-700' : 'text-rose-700'" x-text="profit >= 0 ? 'ПРИБЫЛЬ' : 'УБЫТОК'"></td>
+                                    <td class="px-5 py-4 text-right text-xs text-slate-600 font-bold" x-text="`${margin}%`"></td>
+                                    <td class="px-5 py-4 text-right text-base font-extrabold" :class="profit >= 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="formatRub(profit)"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recommendation widget -->
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5 shadow-sm">
+                    <div class="flex gap-4">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">Бизнес-инсайт по товару</h4>
+                            <p class="mt-1.5 text-xs text-slate-600 leading-relaxed" x-text="getInsightMessage()"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div 
+        x-show="showModal" 
+        class="fixed inset-0 z-50 overflow-y-auto" 
+        aria-labelledby="modal-title" 
+        role="dialog" 
+        aria-modal="true"
+        x-cloak
+    >
+        <div class="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
+            <!-- Background backdrop -->
+            <div 
+                x-show="showModal" 
+                @click="closeModal()"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity" 
+                aria-hidden="true"
+            ></div>
+
+            <!-- Position element to center modal content -->
+            <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Content Card -->
+            <div 
+                x-show="showModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative inline-block transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:align-middle"
+            >
+                <div class="bg-white px-5 py-6">
+                    <div class="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-700">
+                                <i class="fa-solid fa-tags"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900" id="modal-title" x-text="modalMode === 'create' ? 'Создание новой категории' : 'Редактирование категории'"></h3>
+                        </div>
+                        <button @click="closeModal()" class="text-slate-400 hover:text-slate-500 transition-colors">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Category Name -->
+                        <div class="space-y-1.5">
+                            <label for="newCatName" class="block text-xs font-semibold text-slate-700">Название категории</label>
+                            <input 
+                                type="text" 
+                                id="newCatName" 
+                                x-model="newCatName" 
+                                class="block w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                                placeholder="Например, Обувь демисезонная"
+                            >
+                        </div>
+
+                        <!-- Commission FBW -->
+                        <div class="space-y-1.5">
+                            <label for="newCatCommFbw" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                                <span>Комиссия FBW (%)</span>
+                                <span class="text-[10px] font-normal text-slate-400">Продажи со склада WB</span>
+                            </label>
+                            <div class="relative rounded-xl shadow-sm">
+                                <input 
+                                    type="number" 
+                                    id="newCatCommFbw" 
+                                    x-model.number="newCatCommFbw" 
+                                    min="0"
+                                    max="100"
+                                    step="any"
+                                    class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                                    placeholder="25.0"
+                                >
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                                    <span class="text-slate-400 text-sm">%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Commission FBS -->
+                        <div class="space-y-1.5">
+                            <label for="newCatCommFbs" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                                <span>Комиссия FBS (%)</span>
+                                <span class="text-[10px] font-normal text-slate-400">Продажи со своего склада</span>
+                            </label>
+                            <div class="relative rounded-xl shadow-sm">
+                                <input 
+                                    type="number" 
+                                    id="newCatCommFbs" 
+                                    x-model.number="newCatCommFbs" 
+                                    min="0"
+                                    max="100"
+                                    step="any"
+                                    class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                                    placeholder="23.5"
+                                >
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                                    <span class="text-slate-400 text-sm">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="bg-slate-50 px-5 py-4 flex flex-row-reverse gap-3">
+                    <button 
+                        type="button" 
+                        @click="saveCategory()" 
+                        class="inline-flex w-full justify-center rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-purple-700 transition-all sm:w-auto"
+                        x-text="modalMode === 'create' ? 'Создать' : 'Сохранить'"
+                    >
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="closeModal()" 
+                        class="inline-flex w-full justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all sm:w-auto"
+                    >
+                        Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm deletion modal -->
+    <div 
+        x-show="showDeleteConfirm" 
+        class="fixed inset-0 z-50 overflow-y-auto" 
+        x-cloak
+    >
+        <div class="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
+            <div 
+                x-show="showDeleteConfirm" 
+                @click="showDeleteConfirm = false"
+                class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity" 
+            ></div>
+            <span class="hidden sm:inline-block sm:h-screen sm:align-middle">&#8203;</span>
+            
+            <div 
+                x-show="showDeleteConfirm"
+                class="relative inline-block transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:align-middle"
+            >
+                <div class="bg-white p-6">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Удалить категорию?</h3>
+                            <p class="mt-2 text-xs text-slate-500 leading-relaxed">
+                                Вы действительно хотите удалить категорию <strong class="text-slate-800" x-text="selectedCategory.name"></strong>? Все её сохранённые значения параметров будут утеряны. Это действие нельзя отменить.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3">
+                    <button 
+                        type="button" 
+                        @click="deleteCategory()" 
+                        class="inline-flex w-full justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 transition-all sm:w-auto"
+                    >
+                        Да, удалить
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="showDeleteConfirm = false" 
+                        class="inline-flex w-full justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-all sm:w-auto"
+                    >
+                        Отмена
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script tags -->
+    <script>
+        function calculatorApp() {
+            return {
+                // Interactive product state
+                price: 2500,
+                sppPercent: 15,
+                selfCost: 800,
+                promoPercent: 12,
+                otherExpenses: 140,
+                taxPercent: 6,
+                logisticsPercent: 5.5,
+                storagePercent: 1.8,
+                saleModel: 'fbw', // 'fbw' or 'fbs'
+
+                // Loaded Categories list
+                categories: [],
+                selectedCategoryId: null,
+
+                // Modal Control States
+                showModal: false,
+                modalMode: 'create', // 'create' or 'edit'
+                editingCategoryId: null,
+                newCatName: '',
+                newCatCommFbw: 15,
+                newCatCommFbs: 15,
+
+                showDeleteConfirm: false,
+
+                // Toast notifications system
+                toast: {
+                    show: false,
+                    message: '',
+                    icon: 'fa-circle-check'
+                },
+
+                // Initialization of Application
+                init() {
+                    // Try to restore categories list from localStorage
+                    const localCats = localStorage.getItem('wb_pro_categories');
+                    if (localCats) {
+                        try {
+                            this.categories = JSON.parse(localCats);
+                        } catch(e) {
+                            this.loadDefaultCategories();
+                        }
+                    } else {
+                        this.loadDefaultCategories();
+                    }
+
+                    // Select first category
+                    if (this.categories.length > 0) {
+                        this.selectedCategoryId = this.categories[0].id;
+                    }
+
+                    // Restore initial parameters for selected category
+                    this.loadCategoryParams();
+
+                    // Listeners to automatically save parameters on user input changes
+                    this.$watch('selectedCategoryId', (newVal, oldVal) => {
+                        if (oldVal) {
+                            this.saveCategoryParams(oldVal);
+                        }
+                        this.loadCategoryParams(newVal);
+                    });
+
+                    // Continuous autosave on modifications
+                    const saveTracker = () => {
+                        this.saveCategoryParams(this.selectedCategoryId);
+                    };
+
+                    this.$watch('price', saveTracker);
+                    this.$watch('sppPercent', saveTracker);
+                    this.$watch('selfCost', saveTracker);
+                    this.$watch('logisticsPercent', saveTracker);
+                    this.$watch('storagePercent', saveTracker);
+                    this.$watch('promoPercent', saveTracker);
+                    this.$watch('otherExpenses', saveTracker);
+                    this.$watch('taxPercent', saveTracker);
+                    this.$watch('saleModel', saveTracker);
+                },
+
+                loadDefaultCategories() {
+                    this.categories = [
+                        { id: 1, name: 'Одежда и аксессуары', commissionFbw: 25.0, commissionFbs: 23.0 },
+                        { id: 2, name: 'Обувь', commissionFbw: 23.0, commissionFbs: 21.5 },
+                        { id: 3, name: 'Электроника и бытовая техника', commissionFbw: 15.0, commissionFbs: 13.5 },
+                        { id: 4, name: 'Косметика и уход', commissionFbw: 17.5, commissionFbs: 16.0 },
+                        { id: 5, name: 'Товары для дома и кухни', commissionFbw: 19.0, commissionFbs: 17.5 },
+                        { id: 6, name: 'Детские игрушки', commissionFbw: 19.0, commissionFbs: 18.0 },
+                        { id: 7, name: 'Спортивные товары', commissionFbw: 17.0, commissionFbs: 15.5 },
+                        { id: 8, name: 'Книги и канцелярия', commissionFbw: 10.0, commissionFbs: 9.0 }
+                    ];
+                    this.saveCategoriesToStorage();
+                },
+
+                // Sync category structure to localStorage
+                saveCategoriesToStorage() {
+                    localStorage.setItem('wb_pro_categories', JSON.stringify(this.categories));
+                },
+
+                // Load custom values entered for specified category
+                loadCategoryParams(catId = null) {
+                    const activeId = catId || this.selectedCategoryId;
+                    if (!activeId) return;
+
+                    const savedData = localStorage.getItem(`wb_pro_params_cat_${activeId}`);
+                    if (savedData) {
+                        try {
+                            const params = JSON.parse(savedData);
+                            this.price = params.price !== undefined ? params.price : 2500;
+                            this.sppPercent = params.sppPercent !== undefined ? params.sppPercent : 15;
+                            this.selfCost = params.selfCost !== undefined ? params.selfCost : 800;
+                            this.logisticsPercent = params.logisticsPercent !== undefined ? params.logisticsPercent : 5.5;
+                            this.storagePercent = params.storagePercent !== undefined ? params.storagePercent : 1.8;
+                            this.promoPercent = params.promoPercent !== undefined ? params.promoPercent : 12;
+                            this.otherExpenses = params.otherExpenses !== undefined ? params.otherExpenses : 140;
+                            this.taxPercent = params.taxPercent !== undefined ? params.taxPercent : 6;
+                            this.saleModel = params.saleModel !== undefined ? params.saleModel : 'fbw';
+                        } catch(e) {
+                            this.setDefaultFormFields();
+                        }
+                    } else {
+                        this.setDefaultFormFields();
+                    }
+                },
+
+                // Save current values for specified category
+                saveCategoryParams(catId) {
+                    if (!catId) return;
+                    const params = {
+                        price: this.price,
+                        sppPercent: this.sppPercent,
+                        selfCost: this.selfCost,
+                        logisticsPercent: this.logisticsPercent,
+                        storagePercent: this.storagePercent,
+                        promoPercent: this.promoPercent,
+                        otherExpenses: this.otherExpenses,
+                        taxPercent: this.taxPercent,
+                        saleModel: this.saleModel
+                    };
+                    localStorage.setItem(`wb_pro_params_cat_${catId}`, JSON.stringify(params));
+                },
+
+                setDefaultFormFields() {
+                    this.price = 2500;
+                    this.sppPercent = 15;
+                    this.selfCost = 800;
+                    this.logisticsPercent = 5.5;
+                    this.storagePercent = 1.8;
+                    this.promoPercent = 12;
+                    this.otherExpenses = 140;
+                    this.taxPercent = 6;
+                    this.saleModel = 'fbw';
+                },
+
+                // Get current category data helper
+                get selectedCategory() {
+                    return this.categories.find(c => c.id == this.selectedCategoryId) || { name: 'Не выбрана', commissionFbw: 0, commissionFbs: 0 };
+                },
+
+                // Returns currently chosen commission value
+                get currentCommissionPercent() {
+                    const cat = this.selectedCategory;
+                    return this.saleModel === 'fbw' ? cat.commissionFbw : cat.commissionFbs;
+                },
+
+                get sppRub() {
+                    if (!this.price) return 0;
+                    const spp = Number(this.sppPercent) || 0;
+                    return Math.round(this.price * (spp / 100));
+                },
+
+                get buyerPrice() {
+                    if (!this.price) return 0;
+                    return Math.max(0, this.price - this.sppRub);
+                },
+
+                get commissionRub() {
+                    if (!this.price) return 0;
+                    return Math.round(this.price * (this.currentCommissionPercent / 100));
+                },
+
+                get logisticsRub() {
+                    if (!this.price) return 0;
+                    return Math.round(this.price * (this.logisticsPercent / 100));
+                },
+
+                get storageRub() {
+                    if (!this.price) return 0;
+                    return Math.round(this.price * (this.storagePercent / 100));
+                },
+
+                get promoRub() {
+                    if (!this.price) return 0;
+                    return Math.round(this.price * (this.promoPercent / 100));
+                },
+
+                get taxRub() {
+                    if (!this.price) return 0;
+                    return Math.round(this.price * (this.taxPercent / 100));
+                },
+
+                get totalExpenses() {
+                    const selfCost = Number(this.selfCost) || 0;
+                    const other = Number(this.otherExpenses) || 0;
+                    return Math.round(selfCost + this.commissionRub + this.logisticsRub + this.storageRub + this.promoRub + other + this.taxRub);
+                },
+
+                get profit() {
+                    const price = Number(this.price) || 0;
+                    return Math.round(price - this.totalExpenses);
+                },
+
+                get margin() {
+                    const price = Number(this.price) || 0;
+                    if (!price || this.profit <= 0) return 0;
+                    return Math.round((this.profit / price) * 100);
+                },
+
+                get roi() {
+                    const selfCost = Number(this.selfCost) || 0;
+                    if (!selfCost || this.profit <= 0) return 0;
+                    return Math.round((this.profit / selfCost) * 100);
+                },
+
+                // UI display helpers
+                formatRub(val) {
+                    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(val);
+                },
+
+                getPercentOfTotal(val) {
+                    const price = Number(this.price) || 0;
+                    if (!price) return 0;
+                    const percentage = (val / price) * 100;
+                    return Math.round(percentage * 10) / 10; // 1 decimal place
+                },
+
+                // Analytical advisor message builder
+                getInsightMessage() {
+                    if (!this.price || this.price <= 0) {
+                        return 'Заполните параметры розничной цены товара, чтобы активировать детальный аналитический разбор.';
+                    }
+                    if (this.profit < 0) {
+                        return 'Внимание! Ваша текущая юнит-экономика убыточна. Попробуйте пересогласовать цену закупки с поставщиком, уменьшить накладные затраты, снизить расходы на внутренний маркетинг или поднять цену продажи на маркетплейсе.';
+                    }
+                    if (this.margin < 15) {
+                        return 'Вы работаете в зоне невысокой маржинальности (' + this.margin + '%). Финансовая модель уязвима к вынужденным скидкам на акциях Wildberries или к росту тарифов на логистику. Рекомендуется оптимизация расходов.';
+                    }
+                    if (this.margin >= 15 && this.margin < 30) {
+                        return 'У вас стабильные и уверенные экономические показатели (' + this.margin + '% маржи). Данный товар жизнеспособен при масштабировании объемов рекламы. Рекомендуется контролировать оборачиваемость склада для снижения расходов на хранение.';
+                    }
+                    return 'Вы нашли отличную прибыльную нишу! Окупаемость ROI превосходит ' + this.roi + '%, а маржинальность составляет ' + this.margin + '%. Вы можете запускать агрессивное поисковое продвижение и уверенно диктовать условия конкурентам.';
+                },
+
+                openCreateModal() {
+                    this.modalMode = 'create';
+                    this.newCatName = '';
+                    this.newCatCommFbw = 15;
+                    this.newCatCommFbs = 15;
+                    this.showModal = true;
+                },
+
+                openEditModal() {
+                    const cat = this.selectedCategory;
+                    if (!cat) return;
+                    this.modalMode = 'edit';
+                    this.editingCategoryId = cat.id;
+                    this.newCatName = cat.name;
+                    this.newCatCommFbw = cat.commissionFbw;
+                    this.newCatCommFbs = cat.commissionFbs;
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                },
+
+                saveCategory() {
+                    if (!this.newCatName.trim()) {
+                        this.showToast('Пожалуйста, заполните название категории!', 'fa-triangle-exclamation');
+                        return;
+                    }
+
+                    // Float parsing support for accurate commissions
+                    const fbwComm = parseFloat(this.newCatCommFbw) || 0;
+                    const fbsComm = parseFloat(this.newCatCommFbs) || 0;
+
+                    const cleanFbw = Math.min(100, Math.max(0, fbwComm));
+                    const cleanFbs = Math.min(100, Math.max(0, fbsComm));
+
+                    if (this.modalMode === 'create') {
+                        // Generate safe auto incrementing integer key
+                        const newId = this.categories.length > 0 ? Math.max(...this.categories.map(c => c.id)) + 1 : 1;
+                        const newCat = {
+                            id: newId,
+                            name: this.newCatName.trim(),
+                            commissionFbw: cleanFbw,
+                            commissionFbs: cleanFbs
+                        };
+                        this.categories.push(newCat);
+                        this.selectedCategoryId = newId;
+                        this.showToast('Категория успешно создана!', 'fa-circle-check');
+                    } else {
+                        // Edit existing category inside state array
+                        const index = this.categories.findIndex(c => c.id === this.editingCategoryId);
+                        if (index !== -1) {
+                            this.categories[index].name = this.newCatName.trim();
+                            this.categories[index].commissionFbw = cleanFbw;
+                            this.categories[index].commissionFbs = cleanFbs;
+                            this.showToast('Категория успешно сохранена!', 'fa-circle-check');
+                        }
+                    }
+
+                    this.saveCategoriesToStorage();
+                    this.closeModal();
+                },
+
+                confirmDeleteCategory() {
+                    if (this.categories.length <= 1) {
+                        this.showToast('Нельзя удалить единственную оставшуюся категорию!', 'fa-triangle-exclamation');
+                        return;
+                    }
+                    this.showDeleteConfirm = true;
+                },
+
+                deleteCategory() {
+                    const deleteId = this.selectedCategoryId;
+                    const index = this.categories.findIndex(c => c.id == deleteId);
+                    
+                    if (index !== -1) {
+                        // Remove param configurations for clean browser cache storage
+                        localStorage.removeItem(`wb_pro_params_cat_${deleteId}`);
+                        
+                        this.categories.splice(index, 1);
+                        this.saveCategoriesToStorage();
+
+                        // Automatically redirect to closest active item
+                        const nextIndex = index === 0 ? 0 : index - 1;
+                        this.selectedCategoryId = this.categories[nextIndex].id;
+                        
+                        this.showToast('Категория успешно удалена', 'fa-trash-can');
+                    }
+                    this.showDeleteConfirm = false;
+                },
+
+                // Reset calculations inside currently active category configuration record
+                resetForm() {
+                    this.setDefaultFormFields();
+                    this.showToast('Параметры для этой категории сброшены.', 'fa-arrow-rotate-left');
+                },
+
+                copySummary() {
+                    const text = `Финансовый расчет товара WB:
+------------------------------------------
+Категория: ${this.selectedCategory.name}
+Модель продаж: ${this.saleModel.toUpperCase()}
+Комиссия WB: ${this.currentCommissionPercent}% (${this.formatRub(this.commissionRub)})
+------------------------------------------
+Розничная цена (выручка): ${this.formatRub(this.price)}
+Скидка СПП (${this.sppPercent}%): -${this.formatRub(this.sppRub)}
+Цена для покупателя: ${this.formatRub(this.buyerPrice)}
+------------------------------------------
+Себестоимость товара: ${this.formatRub(this.selfCost)}
+Логистика WB (${this.logisticsPercent}%): ${this.formatRub(this.logisticsRub)}
+Хранение WB (${this.storagePercent}%): ${this.formatRub(this.storageRub)}
+Маркетинг и реклама (${this.promoPercent}%): ${this.formatRub(this.promoRub)}
+Прочие накладные расходы: ${this.formatRub(this.otherExpenses)}
+Налог (${this.taxPercent}%): ${this.formatRub(this.taxRub)}
+------------------------------------------
+ИТОГО РАСХОДОВ: ${this.formatRub(this.totalExpenses)}
+ЧИСТАЯ ПРИБЫЛЬ: ${this.formatRub(this.profit)}
+Маржинальность: ${this.margin}%
+Рентабельность ROI: ${this.roi}%
+------------------------------------------
+Расчет выполнен в калькуляторе WB Income Pro`;
+
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = text;
+                    document.body.appendChild(tempTextarea);
+                    tempTextarea.select();
+                    try {
+                        document.execCommand('copy');
+                        this.showToast('Расчет скопирован в буфер обмена!', 'fa-copy');
+                    } catch (err) {
+                        this.showToast('Ошибка при копировании.', 'fa-triangle-exclamation');
+                    }
+                    document.body.removeChild(tempTextarea);
+                },
+
+                showToast(message, icon = 'fa-circle-check') {
+                    this.toast.message = message;
+                    this.toast.icon = icon;
+                    this.toast.show = true;
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
