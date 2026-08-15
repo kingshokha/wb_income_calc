@@ -61,6 +61,11 @@
             </div>
             
             <div class="flex items-center gap-3">
+                <!-- Website version badge -->
+                <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
+                    <i class="fa-solid fa-code-branch text-[10px]"></i>
+                    <span>v1.2.0</span>
+                </span>
                 <button 
                     @click="resetForm()" 
                     class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
@@ -168,9 +173,64 @@
                             <input type="radio" name="saleModel" value="fbs" x-model="saleModel" class="sr-only">
                             <span class="text-xs font-bold flex items-center gap-1.5">
                                 <i class="fa-solid fa-truck-ramp-box text-[10px]"></i>
-                                FBS (<span x-text="selectedCategory.commissionFbs"></span>%)
+                                FBS (<span x-text="currentCommissionPercent"></span>%)
                             </span>
                         </label>
+                    </div>
+                </div>
+
+                <!-- Input: Delivery / Shipment Time (FBS Model) -->
+                <div x-show="saleModel === 'fbs'" x-transition class="space-y-2 bg-purple-50/50 p-3.5 rounded-xl border border-purple-100/90">
+                    <div class="flex items-center justify-between">
+                        <label for="deliveryHours" class="block text-xs font-semibold text-purple-950 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock text-purple-600 text-[11px]"></i>
+                            <span>Время отгрузки FBS (часов)</span>
+                        </label>
+                        <span 
+                            class="text-[10px] font-bold px-2 py-0.5 rounded-md transition-all"
+                            :class="deliveryHoursDelta < 0 ? 'bg-emerald-100 text-emerald-800' : (deliveryHoursDelta === 0 ? 'bg-slate-100 text-slate-700' : 'bg-rose-100 text-rose-800')"
+                            x-text="deliveryHoursDelta < 0 ? `Скидка: ${deliveryHoursDelta} п.п.` : (deliveryHoursDelta === 0 ? 'Базовая комиссия' : `Надбавка: +${deliveryHoursDelta} п.п.`)"
+                        ></span>
+                    </div>
+                    
+                    <div class="relative rounded-xl shadow-sm">
+                        <input 
+                            type="text" 
+                            inputmode="decimal"
+                            id="deliveryHours" 
+                            x-model="deliveryHours" 
+                            @input="deliveryHours = Math.min(192, Math.max(0, parseNum($event.target.value.replace(',', '.'))))"
+                            class="block w-full rounded-xl border border-purple-200 bg-white pr-14 pl-3.5 py-2 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                            placeholder="36"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                            <span class="text-slate-400 text-xs">часов</span>
+                        </div>
+                    </div>
+                    
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="192" 
+                        x-model.number="deliveryHours" 
+                        class="w-full h-1 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                    >
+
+                    <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500 border-t border-purple-100">
+                        <span>Итоговая комиссия FBS:</span>
+                        <span class="font-bold text-purple-700 text-xs">
+                            <span x-text="`${currentCommissionPercent}%`"></span> 
+                            <span class="font-normal text-[10px] text-slate-400" x-text="`(${selectedCategory.commissionFbs}% ${deliveryHoursDelta >= 0 ? '+' : ''}${deliveryHoursDelta}%)`"></span>
+                        </span>
+                    </div>
+                    
+                    <div class="text-[10px] text-slate-500 space-y-0.5 leading-tight pt-0.5">
+                        <p x-show="parseNum(deliveryHours) < 13" class="text-emerald-700 font-medium">⚡ До 13 ч: скидка к комиссии -5 п.п.</p>
+                        <p x-show="parseNum(deliveryHours) >= 13 && parseNum(deliveryHours) < 42" class="text-emerald-700 font-medium">🚀 От 13 до 42 ч: скидка к комиссии -3.5 п.п.</p>
+                        <p x-show="parseNum(deliveryHours) >= 42 && parseNum(deliveryHours) <= 48" class="text-slate-600 font-medium">⏱ От 42 до 48 ч: базовая комиссия (без изменений)</p>
+                        <p x-show="parseNum(deliveryHours) > 48 && parseNum(deliveryHours) <= 54" class="text-amber-700 font-medium">⚠️ От 48 до 54 ч: +0.30 п.п. за каждый час после 48 ч</p>
+                        <p x-show="parseNum(deliveryHours) > 54 && parseNum(deliveryHours) <= 60" class="text-rose-700 font-medium">⚠️ От 54 до 60 ч: +0.35 п.п. за каждый час после 48 ч</p>
+                        <p x-show="parseNum(deliveryHours) > 60" class="text-rose-700 font-medium">🚨 Свыше 60 ч: +0.45 п.п. за каждый час после 48 ч (макс. 192 ч)</p>
                     </div>
                 </div>
 
@@ -617,7 +677,7 @@
                                         <span>Комиссия WB</span>
                                         <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded" x-text="saleModel.toUpperCase()"></span>
                                     </td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="`Для модели ${saleModel.toUpperCase()}`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="saleModel === 'fbs' ? `FBS (отгрузка ${deliveryHours} ч: ${deliveryHoursDelta >= 0 ? '+' : ''}${deliveryHoursDelta}%)` : 'Для модели FBW'"></td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentCommissionPercent}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(commissionRub)}`"></td>
                                 </tr>
@@ -895,6 +955,7 @@
                 price: 2500,
                 sppPercent: 15,
                 selfCost: 800,
+                deliveryHours: 36,
                 promoMode: 'percent', // 'percent' or 'rub'
                 promoPercent: 12,
                 promoRubInput: 300,
@@ -972,6 +1033,7 @@
                     this.$watch('price', saveTracker);
                     this.$watch('sppPercent', saveTracker);
                     this.$watch('selfCost', saveTracker);
+                    this.$watch('deliveryHours', saveTracker);
                     this.$watch('logisticsPercent', saveTracker);
                     this.$watch('storagePercent', saveTracker);
                     this.$watch('promoMode', saveTracker);
@@ -1004,6 +1066,7 @@
                             this.price = params.price !== undefined ? params.price : 2500;
                             this.sppPercent = params.sppPercent !== undefined ? params.sppPercent : 15;
                             this.selfCost = params.selfCost !== undefined ? params.selfCost : 800;
+                            this.deliveryHours = params.deliveryHours !== undefined ? params.deliveryHours : 36;
                             this.logisticsPercent = params.logisticsPercent !== undefined ? params.logisticsPercent : 5.5;
                             this.storagePercent = params.storagePercent !== undefined ? params.storagePercent : 1.8;
                             this.promoMode = params.promoMode !== undefined ? params.promoMode : 'percent';
@@ -1027,6 +1090,7 @@
                         price: this.price,
                         sppPercent: this.sppPercent,
                         selfCost: this.selfCost,
+                        deliveryHours: this.deliveryHours,
                         logisticsPercent: this.logisticsPercent,
                         storagePercent: this.storagePercent,
                         promoMode: this.promoMode,
@@ -1043,6 +1107,7 @@
                     this.price = 2500;
                     this.sppPercent = 15;
                     this.selfCost = 800;
+                    this.deliveryHours = 36;
                     this.logisticsPercent = 5.5;
                     this.storagePercent = 1.8;
                     this.promoMode = 'percent';
@@ -1063,15 +1128,40 @@
                     this.promoMode = mode;
                 },
 
+                // Calculate commission delta for FBS shipment speed
+                get deliveryHoursDelta() {
+                    if (this.saleModel !== 'fbs') return 0;
+                    const h = Math.min(192, Math.max(0, this.parseNum(this.deliveryHours)));
+                    if (h < 13) {
+                        return -5.0;
+                    } else if (h < 42) {
+                        return -3.5;
+                    } else if (h <= 48) {
+                        return 0.0;
+                    } else if (h <= 54) {
+                        return Math.round((h - 48) * 0.30 * 100) / 100;
+                    } else if (h <= 60) {
+                        return Math.round((h - 48) * 0.35 * 100) / 100;
+                    } else {
+                        return Math.round((h - 48) * 0.45 * 100) / 100;
+                    }
+                },
+
                 // Get current category data helper
                 get selectedCategory() {
                     return this.categories.find(c => c.id == this.selectedCategoryId) || { name: 'Не выбрана', commissionFbw: 0, commissionFbs: 0 };
                 },
 
-                // Returns currently chosen commission value
+                // Returns currently chosen commission value (including FBS delivery hours modifier)
                 get currentCommissionPercent() {
                     const cat = this.selectedCategory;
-                    return this.saleModel === 'fbw' ? this.parseNum(cat.commissionFbw) : this.parseNum(cat.commissionFbs);
+                    if (this.saleModel === 'fbw') {
+                        return this.parseNum(cat.commissionFbw);
+                    } else {
+                        const base = this.parseNum(cat.commissionFbs);
+                        const effective = base + this.deliveryHoursDelta;
+                        return Math.max(0, Math.round(effective * 100) / 100);
+                    }
                 },
 
                 get sppRub() {
@@ -1294,7 +1384,7 @@
 ------------------------------------------
 Категория: ${this.selectedCategory.name}
 Модель продаж: ${this.saleModel.toUpperCase()}
-Комиссия WB: ${this.currentCommissionPercent}% (${this.formatRub(this.commissionRub)})
+Комиссия WB: ${this.currentCommissionPercent}% (${this.formatRub(this.commissionRub)})${this.saleModel === 'fbs' ? ` [Отгрузка: ${this.deliveryHours} ч., изм.: ${this.deliveryHoursDelta >= 0 ? '+' : ''}${this.deliveryHoursDelta}%]` : ''}
 ------------------------------------------
 Розничная цена (выручка): ${this.formatRub(this.price)}
 Скидка СПП (${this.sppPercent}%): -${this.formatRub(this.sppRub)}
@@ -1311,7 +1401,7 @@ ${this.saleModel === 'fbw' ? `Хранение WB (${this.storagePercent}%): ${t
 Маржинальность: ${this.margin}%
 Рентабельность ROI: ${this.roi}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro`;
+Расчет выполнен в калькуляторе WB Income Pro v1.2.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
