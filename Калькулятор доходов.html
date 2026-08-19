@@ -64,7 +64,7 @@
                 <!-- Website version badge -->
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
                     <i class="fa-solid fa-code-branch text-[10px]"></i>
-                    <span>v1.2.0</span>
+                    <span>v1.3.0</span>
                 </span>
                 <button 
                     @click="resetForm()" 
@@ -314,62 +314,182 @@
                     </div>
                 </div>
 
-                <!-- Input: Logistics % -->
+                <!-- Input: Logistics WB (% or ₽ Toggle) -->
                 <div class="space-y-1.5">
-                    <label for="logisticsPercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
-                        <span>Логистика WB (%)</span>
-                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(logisticsRub)}`">0 ₽</span>
-                    </label>
-                    <div class="relative rounded-xl shadow-sm">
-                        <input 
-                            type="text" 
-                            inputmode="decimal"
-                            id="logisticsPercent" 
-                            x-model="logisticsPercent" 
-                            @input="logisticsPercent = $event.target.value.replace(',', '.')"
-                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
-                            placeholder="0"
-                        >
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
-                            <span class="text-slate-400 text-sm">%</span>
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-slate-700">
+                            <span>Логистика WB</span>
+                        </label>
+                        <!-- Toggle % / ₽ -->
+                        <div class="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200/80 shadow-inner">
+                            <button 
+                                type="button" 
+                                @click="setLogisticsMode('percent')" 
+                                class="px-2.5 py-0.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center min-w-[26px]"
+                                :class="logisticsMode === 'percent' ? 'bg-white text-purple-700 shadow-sm border border-slate-200/50' : 'text-slate-400 hover:text-slate-600'"
+                                title="Расчет в процентах"
+                            >
+                                %
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="setLogisticsMode('rub')" 
+                                class="px-2.5 py-0.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center min-w-[26px]"
+                                :class="logisticsMode === 'rub' ? 'bg-white text-purple-700 shadow-sm border border-slate-200/50' : 'text-slate-400 hover:text-slate-600'"
+                                title="Расчет в рублях на штуку"
+                            >
+                                ₽
+                            </button>
                         </div>
                     </div>
-                    <input 
-                        type="range" 
-                        min="0" 
-                        max="50" 
-                        x-model.number="logisticsPercent" 
-                        class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
-                    >
+
+                    <!-- Mode % -->
+                    <div x-show="logisticsMode === 'percent'" class="space-y-1.5">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>В процентах от розничной цены</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${formatRub(logisticsRub)}`">0 ₽</span>
+                        </div>
+                        <div class="relative rounded-xl shadow-sm">
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="logisticsPercent" 
+                                x-model="logisticsPercent" 
+                                @input="logisticsPercent = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                placeholder="5.5"
+                            >
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                                <span class="text-slate-400 text-sm">%</span>
+                            </div>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="50" 
+                            x-model.number="logisticsPercent" 
+                            class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                        >
+                    </div>
+
+                    <!-- Mode ₽ -->
+                    <div x-show="logisticsMode === 'rub'" class="space-y-1.5">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>Сумма доставки в рублях на 1 шт.</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${currentLogisticsPercent}%`">0%</span>
+                        </div>
+                        <div class="relative rounded-xl shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                                <span class="text-slate-400 text-sm">₽</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="logisticsRubInput" 
+                                x-model="logisticsRubInput" 
+                                @input="logisticsRubInput = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                placeholder="138"
+                            >
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            :max="parseNum(price) || 1000" 
+                            step="10"
+                            x-model.number="logisticsRubInput" 
+                            class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                        >
+                    </div>
                 </div>
 
-                <!-- Input: Storage % (Hidden for FBS model) -->
+                <!-- Input: Storage % (% or ₽ Toggle, Hidden for FBS model) -->
                 <div x-show="saleModel === 'fbw'" x-transition class="space-y-1.5">
-                    <label for="storagePercent" class="block text-xs font-semibold text-slate-700 flex justify-between">
-                        <span>Хранение WB (%)</span>
-                        <span class="text-[10px] font-normal text-slate-400" x-text="`≈ ${formatRub(storageRub)}`">0 ₽</span>
-                    </label>
-                    <div class="relative rounded-xl shadow-sm">
-                        <input 
-                            type="text" 
-                            inputmode="decimal"
-                            id="storagePercent" 
-                            x-model="storagePercent" 
-                            @input="storagePercent = $event.target.value.replace(',', '.')"
-                            class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
-                            placeholder="0"
-                        >
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
-                            <span class="text-slate-400 text-sm">%</span>
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-slate-700">
+                            <span>Хранение WB</span>
+                        </label>
+                        <!-- Toggle % / ₽ -->
+                        <div class="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200/80 shadow-inner">
+                            <button 
+                                type="button" 
+                                @click="setStorageMode('percent')" 
+                                class="px-2.5 py-0.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center min-w-[26px]"
+                                :class="storageMode === 'percent' ? 'bg-white text-purple-700 shadow-sm border border-slate-200/50' : 'text-slate-400 hover:text-slate-600'"
+                                title="Расчет в процентах"
+                            >
+                                %
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="setStorageMode('rub')" 
+                                class="px-2.5 py-0.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center min-w-[26px]"
+                                :class="storageMode === 'rub' ? 'bg-white text-purple-700 shadow-sm border border-slate-200/50' : 'text-slate-400 hover:text-slate-600'"
+                                title="Расчет в рублях на штуку"
+                            >
+                                ₽
+                            </button>
                         </div>
                     </div>
-                    <input 
-                        type="range" 
-                        min="0" 
-                        max="20" 
-                        x-model.number="storagePercent" 
-                        class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
-                    >
+
+                    <!-- Mode % -->
+                    <div x-show="storageMode === 'percent'" class="space-y-1.5">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>В процентах от розничной цены</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${formatRub(storageRub)}`">0 ₽</span>
+                        </div>
+                        <div class="relative rounded-xl shadow-sm">
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="storagePercent" 
+                                x-model="storagePercent" 
+                                @input="storagePercent = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 pr-10 pl-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                placeholder="1.8"
+                            >
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5">
+                                <span class="text-slate-400 text-sm">%</span>
+                            </div>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="20" 
+                            x-model.number="storagePercent" 
+                            class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                        >
+                    </div>
+
+                    <!-- Mode ₽ -->
+                    <div x-show="storageMode === 'rub'" class="space-y-1.5">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>Сумма хранения в рублях на 1 шт.</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${currentStoragePercent}%`">0%</span>
+                        </div>
+                        <div class="relative rounded-xl shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                                <span class="text-slate-400 text-sm">₽</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="storageRubInput" 
+                                x-model="storageRubInput" 
+                                @input="storageRubInput = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 pl-8 pr-3 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                placeholder="45"
+                            >
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            :max="parseNum(price) ? Math.round(parseNum(price) * 0.2) : 200" 
+                            step="5"
+                            x-model.number="storageRubInput" 
+                            class="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600 focus:outline-none"
+                        >
+                    </div>
                 </div>
 
                 <!-- Input: Marketing Promo (% or ₽ Toggle) -->
@@ -607,11 +727,11 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-teal-500 inline-block"></span>
-                            <span>Логистика</span>
+                            <span>Логистика (<span x-text="`${currentLogisticsPercent}%`"></span>)</span>
                         </div>
                         <div x-show="saleModel === 'fbw'" class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-sky-400 inline-block"></span>
-                            <span>Хранение</span>
+                            <span>Хранение (<span x-text="`${currentStoragePercent}%`"></span>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-amber-500 inline-block"></span>
@@ -693,16 +813,16 @@
                                 <!-- Logistics Row -->
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Логистика WB</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Доставка до покупателя + возвраты</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${logisticsPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="logisticsMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Доставка до покупателя + возвраты'"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentLogisticsPercent}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(logisticsRub)}`"></td>
                                 </tr>
 
                                 <!-- Storage Row (FBW Only) -->
                                 <tr x-show="saleModel === 'fbw'" class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Хранение на складах</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400">Плата за объём хранения в день</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${storagePercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="storageMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Плата за объём хранения в день'"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentStoragePercent}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(storageRub)}`"></td>
                                 </tr>
 
@@ -956,13 +1076,17 @@
                 sppPercent: 15,
                 selfCost: 800,
                 deliveryHours: 36,
-                promoMode: 'percent', // 'percent' or 'rub'
-                promoPercent: 12,
-                promoRubInput: 300,
-                otherExpenses: 140,
-                taxPercent: 6,
+                logisticsMode: 'percent', // 'percent' or 'rub'
                 logisticsPercent: 5.5,
+                logisticsRubInput: 138,
+                storageMode: 'percent', // 'percent' or 'rub'
                 storagePercent: 1.8,
+                storageRubInput: 45,
+                promoMode: 'percent', // 'percent' or 'rub'
+                promoPercent: 0,
+                promoRubInput: 0,
+                otherExpenses: 0,
+                taxPercent: 6,
                 saleModel: 'fbw', // 'fbw' or 'fbs'
 
                 // Loaded Categories list
@@ -1034,8 +1158,12 @@
                     this.$watch('sppPercent', saveTracker);
                     this.$watch('selfCost', saveTracker);
                     this.$watch('deliveryHours', saveTracker);
+                    this.$watch('logisticsMode', saveTracker);
                     this.$watch('logisticsPercent', saveTracker);
+                    this.$watch('logisticsRubInput', saveTracker);
+                    this.$watch('storageMode', saveTracker);
                     this.$watch('storagePercent', saveTracker);
+                    this.$watch('storageRubInput', saveTracker);
                     this.$watch('promoMode', saveTracker);
                     this.$watch('promoPercent', saveTracker);
                     this.$watch('promoRubInput', saveTracker);
@@ -1067,12 +1195,16 @@
                             this.sppPercent = params.sppPercent !== undefined ? params.sppPercent : 15;
                             this.selfCost = params.selfCost !== undefined ? params.selfCost : 800;
                             this.deliveryHours = params.deliveryHours !== undefined ? params.deliveryHours : 36;
+                            this.logisticsMode = params.logisticsMode !== undefined ? params.logisticsMode : 'percent';
                             this.logisticsPercent = params.logisticsPercent !== undefined ? params.logisticsPercent : 5.5;
+                            this.logisticsRubInput = params.logisticsRubInput !== undefined ? params.logisticsRubInput : 138;
+                            this.storageMode = params.storageMode !== undefined ? params.storageMode : 'percent';
                             this.storagePercent = params.storagePercent !== undefined ? params.storagePercent : 1.8;
+                            this.storageRubInput = params.storageRubInput !== undefined ? params.storageRubInput : 45;
                             this.promoMode = params.promoMode !== undefined ? params.promoMode : 'percent';
-                            this.promoPercent = params.promoPercent !== undefined ? params.promoPercent : 12;
-                            this.promoRubInput = params.promoRubInput !== undefined ? params.promoRubInput : 300;
-                            this.otherExpenses = params.otherExpenses !== undefined ? params.otherExpenses : 140;
+                            this.promoPercent = params.promoPercent !== undefined ? params.promoPercent : 0;
+                            this.promoRubInput = params.promoRubInput !== undefined ? params.promoRubInput : 0;
+                            this.otherExpenses = params.otherExpenses !== undefined ? params.otherExpenses : 0;
                             this.taxPercent = params.taxPercent !== undefined ? params.taxPercent : 6;
                             this.saleModel = params.saleModel !== undefined ? params.saleModel : 'fbw';
                         } catch(e) {
@@ -1091,8 +1223,12 @@
                         sppPercent: this.sppPercent,
                         selfCost: this.selfCost,
                         deliveryHours: this.deliveryHours,
+                        logisticsMode: this.logisticsMode,
                         logisticsPercent: this.logisticsPercent,
+                        logisticsRubInput: this.logisticsRubInput,
+                        storageMode: this.storageMode,
                         storagePercent: this.storagePercent,
+                        storageRubInput: this.storageRubInput,
                         promoMode: this.promoMode,
                         promoPercent: this.promoPercent,
                         promoRubInput: this.promoRubInput,
@@ -1108,14 +1244,38 @@
                     this.sppPercent = 15;
                     this.selfCost = 800;
                     this.deliveryHours = 36;
+                    this.logisticsMode = 'percent';
                     this.logisticsPercent = 5.5;
+                    this.logisticsRubInput = 138;
+                    this.storageMode = 'percent';
                     this.storagePercent = 1.8;
+                    this.storageRubInput = 45;
                     this.promoMode = 'percent';
-                    this.promoPercent = 12;
-                    this.promoRubInput = 300;
-                    this.otherExpenses = 140;
+                    this.promoPercent = 0;
+                    this.promoRubInput = 0;
+                    this.otherExpenses = 0;
                     this.taxPercent = 6;
                     this.saleModel = 'fbw';
+                },
+
+                setLogisticsMode(mode) {
+                    if (this.logisticsMode === mode) return;
+                    if (mode === 'rub') {
+                        this.logisticsRubInput = this.logisticsRub;
+                    } else {
+                        this.logisticsPercent = this.currentLogisticsPercent;
+                    }
+                    this.logisticsMode = mode;
+                },
+
+                setStorageMode(mode) {
+                    if (this.storageMode === mode) return;
+                    if (mode === 'rub') {
+                        this.storageRubInput = this.storageRub;
+                    } else {
+                        this.storagePercent = this.currentStoragePercent;
+                    }
+                    this.storageMode = mode;
                 },
 
                 setPromoMode(mode) {
@@ -1183,16 +1343,46 @@
                     return Math.round(price * (this.currentCommissionPercent / 100));
                 },
 
+                get currentLogisticsPercent() {
+                    const price = this.parseNum(this.price);
+                    if (this.logisticsMode === 'percent') {
+                        return this.parseNum(this.logisticsPercent);
+                    } else {
+                        if (!price) return 0;
+                        const rub = this.parseNum(this.logisticsRubInput);
+                        return Math.round((rub / price) * 1000) / 10;
+                    }
+                },
+
                 get logisticsRub() {
                     const price = this.parseNum(this.price);
-                    if (!price) return 0;
-                    return Math.round(price * (this.parseNum(this.logisticsPercent) / 100));
+                    if (this.logisticsMode === 'percent') {
+                        if (!price) return 0;
+                        return Math.round(price * (this.parseNum(this.logisticsPercent) / 100));
+                    } else {
+                        return Math.round(this.parseNum(this.logisticsRubInput));
+                    }
+                },
+
+                get currentStoragePercent() {
+                    const price = this.parseNum(this.price);
+                    if (this.saleModel === 'fbs' || !price) return 0;
+                    if (this.storageMode === 'percent') {
+                        return this.parseNum(this.storagePercent);
+                    } else {
+                        const rub = this.parseNum(this.storageRubInput);
+                        return Math.round((rub / price) * 1000) / 10;
+                    }
                 },
 
                 get storageRub() {
                     const price = this.parseNum(this.price);
                     if (this.saleModel === 'fbs' || !price) return 0;
-                    return Math.round(price * (this.parseNum(this.storagePercent) / 100));
+                    if (this.storageMode === 'percent') {
+                        return Math.round(price * (this.parseNum(this.storagePercent) / 100));
+                    } else {
+                        return Math.round(this.parseNum(this.storageRubInput));
+                    }
                 },
 
                 get currentPromoPercent() {
@@ -1391,8 +1581,8 @@
 Цена для покупателя: ${this.formatRub(this.buyerPrice)}
 ------------------------------------------
 Себестоимость товара: ${this.formatRub(this.selfCost)}
-Логистика WB (${this.logisticsPercent}%): ${this.formatRub(this.logisticsRub)}
-${this.saleModel === 'fbw' ? `Хранение WB (${this.storagePercent}%): ${this.formatRub(this.storageRub)}\n` : ''}Маркетинг и реклама (${this.currentPromoPercent}%): ${this.formatRub(this.promoRub)}
+Логистика WB (${this.currentLogisticsPercent}%): ${this.formatRub(this.logisticsRub)}
+${this.saleModel === 'fbw' ? `Хранение WB (${this.currentStoragePercent}%): ${this.formatRub(this.storageRub)}\n` : ''}Маркетинг и реклама (${this.currentPromoPercent}%): ${this.formatRub(this.promoRub)}
 Прочие накладные расходы: ${this.formatRub(this.otherExpenses)}
 Налог (${this.taxPercent}%): ${this.formatRub(this.taxRub)}
 ------------------------------------------
@@ -1401,7 +1591,7 @@ ${this.saleModel === 'fbw' ? `Хранение WB (${this.storagePercent}%): ${t
 Маржинальность: ${this.margin}%
 Рентабельность ROI: ${this.roi}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro v1.2.0`;
+Расчет выполнен в калькуляторе WB Income Pro v1.3.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
