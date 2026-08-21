@@ -64,7 +64,7 @@
                 <!-- Website version badge -->
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
                     <i class="fa-solid fa-code-branch text-[10px]"></i>
-                    <span>v1.3.0</span>
+                    <span>v1.4.0</span>
                 </span>
                 <button 
                     @click="resetForm()" 
@@ -231,6 +231,58 @@
                         <p x-show="parseNum(deliveryHours) > 48 && parseNum(deliveryHours) <= 54" class="text-amber-700 font-medium">⚠️ От 48 до 54 ч: +0.30 п.п. за каждый час после 48 ч</p>
                         <p x-show="parseNum(deliveryHours) > 54 && parseNum(deliveryHours) <= 60" class="text-rose-700 font-medium">⚠️ От 54 до 60 ч: +0.35 п.п. за каждый час после 48 ч</p>
                         <p x-show="parseNum(deliveryHours) > 60" class="text-rose-700 font-medium">🚨 Свыше 60 ч: +0.45 п.п. за каждый час после 48 ч (макс. 192 ч)</p>
+                    </div>
+                </div>
+
+                <!-- Input: Dimensions (Габариты товара) -->
+                <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <span class="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-box-open text-purple-600 text-[11px]"></i>
+                            <span>Габариты товара</span>
+                        </span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100/80">
+                            Объем: <span x-text="`${volumeLiters} л`"></span>
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="space-y-1">
+                            <label for="lengthCm" class="block text-[11px] font-medium text-slate-600">Длина, см</label>
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="lengthCm" 
+                                x-model="lengthCm" 
+                                @input="lengthCm = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-center text-sm font-semibold text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-xs"
+                                placeholder="15"
+                            >
+                        </div>
+                        <div class="space-y-1">
+                            <label for="widthCm" class="block text-[11px] font-medium text-slate-600">Ширина, см</label>
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="widthCm" 
+                                x-model="widthCm" 
+                                @input="widthCm = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-center text-sm font-semibold text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-xs"
+                                placeholder="13"
+                            >
+                        </div>
+                        <div class="space-y-1">
+                            <label for="heightCm" class="block text-[11px] font-medium text-slate-600">Высота, см</label>
+                            <input 
+                                type="text" 
+                                inputmode="decimal"
+                                id="heightCm" 
+                                x-model="heightCm" 
+                                @input="heightCm = $event.target.value.replace(',', '.')"
+                                class="block w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-center text-sm font-semibold text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-xs"
+                                placeholder="10"
+                            >
+                        </div>
                     </div>
                 </div>
 
@@ -937,16 +989,62 @@
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Category Name -->
-                        <div class="space-y-1.5">
-                            <label for="newCatName" class="block text-xs font-semibold text-slate-700">Название категории</label>
-                            <input 
-                                type="text" 
-                                id="newCatName" 
-                                x-model="newCatName" 
-                                class="block w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
-                                placeholder="Например, Обувь демисезонная"
+                        <!-- Category Name with live autocomplete search from comission.json -->
+                        <div class="space-y-1.5 relative" @click.outside="showCatSuggestions = false">
+                            <div class="flex items-center justify-between">
+                                <label for="newCatName" class="block text-xs font-semibold text-slate-700">Название категории</label>
+                                <span x-show="isDbLoaded" class="text-[10px] font-medium text-purple-600 flex items-center gap-1">
+                                    <i class="fa-solid fa-bolt text-[9px]"></i> Автопоиск WB
+                                </span>
+                            </div>
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="newCatName" 
+                                    x-model="newCatName" 
+                                    @focus="showCatSuggestions = true"
+                                    @input="showCatSuggestions = true"
+                                    @keydown.escape="showCatSuggestions = false"
+                                    autocomplete="off"
+                                    class="block w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                    placeholder="Начните вводить название (например, Шорты, Обувь)..."
+                                >
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" x-show="newCatName">
+                                    <span class="text-slate-400 text-xs">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Autocomplete Dropdown List -->
+                            <div 
+                                x-show="showCatSuggestions && filteredCategorySuggestions.length > 0"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 translate-y-1"
+                                x-transition:enter-end="opacity-100 translate-y-0"
+                                x-transition:leave="transition ease-in duration-100"
+                                x-transition:leave-start="opacity-100 translate-y-0"
+                                x-transition:leave-end="opacity-0 translate-y-1"
+                                class="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-xl border border-purple-100 bg-white p-1.5 shadow-2xl z-50 divide-y divide-slate-100"
+                                x-cloak
                             >
+                                <template x-for="(item, idx) in filteredCategorySuggestions" :key="idx">
+                                    <button 
+                                        type="button" 
+                                        @click="selectSuggestion(item)"
+                                        class="w-full text-left px-3 py-2 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-between group"
+                                    >
+                                        <div class="min-w-0 pr-2">
+                                            <p class="text-xs font-semibold text-slate-900 group-hover:text-purple-700 truncate" x-text="item.subjectName"></p>
+                                            <p class="text-[10px] text-slate-400 truncate" x-text="item.parentName || 'Категория'"></p>
+                                        </div>
+                                        <div class="shrink-0 flex items-center gap-1.5 text-[10px]">
+                                            <span class="bg-purple-50 text-purple-700 border border-purple-100 px-1.5 py-0.5 rounded font-bold" x-text="`FBW: ${item.paidStorageKgvp}%`"></span>
+                                            <span class="bg-slate-50 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded font-bold" x-text="`FBS: ${item.kgvpMarketplace}%`"></span>
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
                         <!-- Commission FBW -->
@@ -1076,6 +1174,9 @@
                 sppPercent: 15,
                 selfCost: 800,
                 deliveryHours: 36,
+                lengthCm: 15,
+                widthCm: 13,
+                heightCm: 10,
                 logisticsMode: 'percent', // 'percent' or 'rub'
                 logisticsPercent: 5.5,
                 logisticsRubInput: 138,
@@ -1092,6 +1193,11 @@
                 // Loaded Categories list
                 categories: [],
                 selectedCategoryId: null,
+
+                // Commissions database loaded from comission.json
+                commissionsDb: [],
+                isDbLoaded: false,
+                showCatSuggestions: false,
 
                 // Modal Control States
                 showModal: false,
@@ -1121,6 +1227,9 @@
 
                 // Initialization of Application
                 init() {
+                    // Load commissions dictionary
+                    this.loadCommissionsDb();
+
                     // Try to restore categories list from localStorage
                     const localCats = localStorage.getItem('wb_pro_categories');
                     if (localCats) {
@@ -1158,6 +1267,9 @@
                     this.$watch('sppPercent', saveTracker);
                     this.$watch('selfCost', saveTracker);
                     this.$watch('deliveryHours', saveTracker);
+                    this.$watch('lengthCm', saveTracker);
+                    this.$watch('widthCm', saveTracker);
+                    this.$watch('heightCm', saveTracker);
                     this.$watch('logisticsMode', saveTracker);
                     this.$watch('logisticsPercent', saveTracker);
                     this.$watch('logisticsRubInput', saveTracker);
@@ -1170,6 +1282,21 @@
                     this.$watch('otherExpenses', saveTracker);
                     this.$watch('taxPercent', saveTracker);
                     this.$watch('saleModel', saveTracker);
+                },
+
+                async loadCommissionsDb() {
+                    try {
+                        const res = await fetch('./comission.json');
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && Array.isArray(data.report)) {
+                                this.commissionsDb = data.report;
+                                this.isDbLoaded = true;
+                            }
+                        }
+                    } catch(e) {
+                        console.warn('Не удалось загрузить comission.json:', e);
+                    }
                 },
 
                 loadDefaultCategories() {
@@ -1195,6 +1322,9 @@
                             this.sppPercent = params.sppPercent !== undefined ? params.sppPercent : 15;
                             this.selfCost = params.selfCost !== undefined ? params.selfCost : 800;
                             this.deliveryHours = params.deliveryHours !== undefined ? params.deliveryHours : 36;
+                            this.lengthCm = params.lengthCm !== undefined ? params.lengthCm : 15;
+                            this.widthCm = params.widthCm !== undefined ? params.widthCm : 13;
+                            this.heightCm = params.heightCm !== undefined ? params.heightCm : 10;
                             this.logisticsMode = params.logisticsMode !== undefined ? params.logisticsMode : 'percent';
                             this.logisticsPercent = params.logisticsPercent !== undefined ? params.logisticsPercent : 5.5;
                             this.logisticsRubInput = params.logisticsRubInput !== undefined ? params.logisticsRubInput : 138;
@@ -1223,6 +1353,9 @@
                         sppPercent: this.sppPercent,
                         selfCost: this.selfCost,
                         deliveryHours: this.deliveryHours,
+                        lengthCm: this.lengthCm,
+                        widthCm: this.widthCm,
+                        heightCm: this.heightCm,
                         logisticsMode: this.logisticsMode,
                         logisticsPercent: this.logisticsPercent,
                         logisticsRubInput: this.logisticsRubInput,
@@ -1244,6 +1377,9 @@
                     this.sppPercent = 15;
                     this.selfCost = 800;
                     this.deliveryHours = 36;
+                    this.lengthCm = 15;
+                    this.widthCm = 13;
+                    this.heightCm = 10;
                     this.logisticsMode = 'percent';
                     this.logisticsPercent = 5.5;
                     this.logisticsRubInput = 138;
@@ -1286,6 +1422,41 @@
                         this.promoPercent = this.currentPromoPercent;
                     }
                     this.promoMode = mode;
+                },
+
+                // Autocomplete matching from comission.json
+                get filteredCategorySuggestions() {
+                    if (!this.newCatName || this.newCatName.trim().length < 1) return [];
+                    const query = this.newCatName.trim().toLowerCase();
+                    const results = [];
+                    for (let i = 0; i < this.commissionsDb.length; i++) {
+                        const item = this.commissionsDb[i];
+                        if (!item || !item.subjectName) continue;
+                        const sName = item.subjectName.toLowerCase();
+                        const pName = item.parentName ? item.parentName.toLowerCase() : '';
+                        if (sName.includes(query) || pName.includes(query)) {
+                            results.push(item);
+                            if (results.length >= 15) break;
+                        }
+                    }
+                    return results;
+                },
+
+                selectSuggestion(item) {
+                    this.newCatName = item.subjectName;
+                    this.newCatCommFbw = item.paidStorageKgvp;
+                    this.newCatCommFbs = item.kgvpMarketplace;
+                    this.showCatSuggestions = false;
+                },
+
+                // Calculate volume in liters
+                get volumeLiters() {
+                    const l = this.parseNum(this.lengthCm);
+                    const w = this.parseNum(this.widthCm);
+                    const h = this.parseNum(this.heightCm);
+                    if (!l || !w || !h) return 0;
+                    const vol = (l * w * h) / 1000;
+                    return Math.round(vol * 100) / 100;
                 },
 
                 // Calculate commission delta for FBS shipment speed
@@ -1469,6 +1640,7 @@
                     this.newCatName = '';
                     this.newCatCommFbw = 15;
                     this.newCatCommFbs = 15;
+                    this.showCatSuggestions = false;
                     this.showModal = true;
                 },
 
@@ -1484,10 +1656,12 @@
                     this.newCatName = cat.name;
                     this.newCatCommFbw = cat.commissionFbw;
                     this.newCatCommFbs = cat.commissionFbs;
+                    this.showCatSuggestions = false;
                     this.showModal = true;
                 },
 
                 closeModal() {
+                    this.showCatSuggestions = false;
                     this.showModal = false;
                 },
 
@@ -1575,6 +1749,7 @@
 Категория: ${this.selectedCategory.name}
 Модель продаж: ${this.saleModel.toUpperCase()}
 Комиссия WB: ${this.currentCommissionPercent}% (${this.formatRub(this.commissionRub)})${this.saleModel === 'fbs' ? ` [Отгрузка: ${this.deliveryHours} ч., изм.: ${this.deliveryHoursDelta >= 0 ? '+' : ''}${this.deliveryHoursDelta}%]` : ''}
+Габариты: ${this.lengthCm} × ${this.widthCm} × ${this.heightCm} см (${this.volumeLiters} л)
 ------------------------------------------
 Розничная цена (выручка): ${this.formatRub(this.price)}
 Скидка СПП (${this.sppPercent}%): -${this.formatRub(this.sppRub)}
@@ -1591,7 +1766,7 @@ ${this.saleModel === 'fbw' ? `Хранение WB (${this.currentStoragePercent}
 Маржинальность: ${this.margin}%
 Рентабельность ROI: ${this.roi}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro v1.3.0`;
+Расчет выполнен в калькуляторе WB Income Pro v1.4.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
