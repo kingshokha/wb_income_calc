@@ -40,9 +40,9 @@
     </script>
     <style>
         [x-cloak] { display: none !important; }
-        /* Smooth transitions */
-        .transition-all-custom {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        *, *::before, *::after {
+            transition: none !important;
+            animation: none !important;
         }
     </style>
 </head>
@@ -64,7 +64,7 @@
                 <!-- Website version badge -->
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
                     <i class="fa-solid fa-code-branch text-[10px]"></i>
-                    <span>v1.4.0</span>
+                    <span>v1.5.0</span>
                 </span>
                 <button 
                     @click="resetForm()" 
@@ -88,12 +88,6 @@
         <!-- Toast Notification Alert -->
         <div 
             x-show="toast.show" 
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 translate-y-4"
-            x-transition:enter-end="opacity-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 translate-y-0"
-            x-transition:leave-end="opacity-0 translate-y-4"
             x-cloak
             class="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl shadow-slate-950/20"
         >
@@ -180,7 +174,7 @@
                 </div>
 
                 <!-- Input: Delivery / Shipment Time (FBS Model) -->
-                <div x-show="saleModel === 'fbs'" x-transition class="space-y-2 bg-purple-50/50 p-3.5 rounded-xl border border-purple-100/90">
+                <div x-show="saleModel === 'fbs'" class="space-y-2 bg-purple-50/50 p-3.5 rounded-xl border border-purple-100/90">
                     <div class="flex items-center justify-between">
                         <label for="deliveryHours" class="block text-xs font-semibold text-purple-950 flex items-center gap-1.5">
                             <i class="fa-solid fa-clock text-purple-600 text-[11px]"></i>
@@ -456,7 +450,7 @@
                 </div>
 
                 <!-- Input: Storage % (% or ₽ Toggle, Hidden for FBS model) -->
-                <div x-show="saleModel === 'fbw'" x-transition class="space-y-1.5">
+                <div x-show="saleModel === 'fbw'" class="space-y-1.5">
                     <div class="flex items-center justify-between">
                         <label class="block text-xs font-semibold text-slate-700">
                             <span>Хранение WB</span>
@@ -734,35 +728,35 @@
                     
                     <div class="relative h-6 w-full overflow-hidden rounded-full bg-slate-100 flex shadow-inner">
                         <!-- Comm -->
-                        <div x-show="commissionRub > 0" :style="`width: ${getPercentOfTotal(commissionRub)}%`" class="bg-purple-500 hover:opacity-90 transition-all duration-300 relative group" :title="`Комиссия: ${getPercentOfTotal(commissionRub)}%`">
+                        <div x-show="commissionRub > 0" :style="`width: ${getPercentOfTotal(commissionRub)}%`" class="bg-purple-500 relative group" :title="`Комиссия: ${getPercentOfTotal(commissionRub)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(commissionRub)}%`"></span>
                         </div>
                         <!-- SelfCost -->
-                        <div x-show="selfCost > 0" :style="`width: ${getPercentOfTotal(selfCost)}%`" class="bg-slate-700 hover:opacity-90 transition-all duration-300 relative" :title="`Себестоимость: ${getPercentOfTotal(selfCost)}%`">
+                        <div x-show="selfCost > 0" :style="`width: ${getPercentOfTotal(selfCost)}%`" class="bg-slate-700 relative" :title="`Себестоимость: ${getPercentOfTotal(selfCost)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(selfCost)}%`"></span>
                         </div>
                         <!-- Logistics -->
-                        <div x-show="logisticsRub > 0" :style="`width: ${getPercentOfTotal(logisticsRub)}%`" class="bg-teal-500 hover:opacity-90 transition-all duration-300 relative" :title="`Логистика: ${getPercentOfTotal(logisticsRub)}%`">
+                        <div x-show="logisticsRub > 0" :style="`width: ${getPercentOfTotal(logisticsRub)}%`" class="bg-teal-500 relative" :title="`Логистика: ${getPercentOfTotal(logisticsRub)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(logisticsRub)}%`"></span>
                         </div>
                         <!-- Storage -->
-                        <div x-show="saleModel === 'fbw' && storageRub > 0" :style="`width: ${getPercentOfTotal(storageRub)}%`" class="bg-sky-400 hover:opacity-90 transition-all duration-300 relative" :title="`Хранение: ${getPercentOfTotal(storageRub)}%`">
+                        <div x-show="saleModel === 'fbw' && storageRub > 0" :style="`width: ${getPercentOfTotal(storageRub)}%`" class="bg-sky-400 relative" :title="`Хранение: ${getPercentOfTotal(storageRub)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(storageRub)}%`"></span>
                         </div>
                         <!-- Promo -->
-                        <div x-show="promoRub > 0" :style="`width: ${getPercentOfTotal(promoRub)}%`" class="bg-amber-500 hover:opacity-90 transition-all duration-300 relative" :title="`Продвижение: ${getPercentOfTotal(promoRub)}%`">
+                        <div x-show="promoRub > 0" :style="`width: ${getPercentOfTotal(promoRub)}%`" class="bg-amber-500 relative" :title="`Продвижение: ${getPercentOfTotal(promoRub)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(promoRub)}%`"></span>
                         </div>
                         <!-- Other -->
-                        <div x-show="otherExpenses > 0" :style="`width: ${getPercentOfTotal(otherExpenses)}%`" class="bg-blue-500 hover:opacity-90 transition-all duration-300 relative" :title="`Прочее: ${getPercentOfTotal(otherExpenses)}%`">
+                        <div x-show="otherExpenses > 0" :style="`width: ${getPercentOfTotal(otherExpenses)}%`" class="bg-blue-500 relative" :title="`Прочее: ${getPercentOfTotal(otherExpenses)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(otherExpenses)}%`"></span>
                         </div>
                         <!-- Tax -->
-                        <div x-show="taxRub > 0" :style="`width: ${getPercentOfTotal(taxRub)}%`" class="bg-red-500 hover:opacity-90 transition-all duration-300 relative" :title="`Налог: ${getPercentOfTotal(taxRub)}%`">
+                        <div x-show="taxRub > 0" :style="`width: ${getPercentOfTotal(taxRub)}%`" class="bg-red-500 relative" :title="`Налог: ${getPercentOfTotal(taxRub)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(taxRub)}%`"></span>
                         </div>
                         <!-- Profit -->
-                        <div x-show="profit > 0" :style="`width: ${getPercentOfTotal(profit)}%`" class="bg-emerald-500 hover:opacity-90 transition-all duration-300 relative" :title="`Прибыль: ${getPercentOfTotal(profit)}%`">
+                        <div x-show="profit > 0" :style="`width: ${getPercentOfTotal(profit)}%`" class="bg-emerald-500 relative" :title="`Прибыль: ${getPercentOfTotal(profit)}%`">
                             <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(profit)}%`"></span>
                         </div>
                     </div>
@@ -951,13 +945,7 @@
             <div 
                 x-show="showModal" 
                 @click="closeModal()"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-                class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity" 
+                class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" 
                 aria-hidden="true"
             ></div>
 
@@ -967,13 +955,7 @@
             <!-- Modal Content Card -->
             <div 
                 x-show="showModal"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative inline-block transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:align-middle"
+                class="relative inline-block transform overflow-hidden rounded-2xl bg-white text-left align-bottom shadow-2xl sm:my-8 sm:w-full sm:max-w-md sm:align-middle"
             >
                 <div class="bg-white px-5 py-6">
                     <div class="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
@@ -983,7 +965,7 @@
                             </div>
                             <h3 class="text-sm font-bold text-slate-900" id="modal-title" x-text="modalMode === 'create' ? 'Создание новой категории' : 'Редактирование категории'"></h3>
                         </div>
-                        <button @click="closeModal()" class="text-slate-400 hover:text-slate-500 transition-colors">
+                        <button @click="closeModal()" class="text-slate-400 hover:text-slate-500">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
@@ -1006,7 +988,7 @@
                                     @input="showCatSuggestions = true"
                                     @keydown.escape="showCatSuggestions = false"
                                     autocomplete="off"
-                                    class="block w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                                    class="block w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-medium"
                                     placeholder="Начните вводить название (например, Шорты, Обувь)..."
                                 >
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3" x-show="newCatName">
@@ -1019,12 +1001,6 @@
                             <!-- Autocomplete Dropdown List -->
                             <div 
                                 x-show="showCatSuggestions && filteredCategorySuggestions.length > 0"
-                                x-transition:enter="transition ease-out duration-150"
-                                x-transition:enter-start="opacity-0 translate-y-1"
-                                x-transition:enter-end="opacity-100 translate-y-0"
-                                x-transition:leave="transition ease-in duration-100"
-                                x-transition:leave-start="opacity-100 translate-y-0"
-                                x-transition:leave-end="opacity-0 translate-y-1"
                                 class="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-xl border border-purple-100 bg-white p-1.5 shadow-2xl z-50 divide-y divide-slate-100"
                                 x-cloak
                             >
@@ -1766,7 +1742,7 @@ ${this.saleModel === 'fbw' ? `Хранение WB (${this.currentStoragePercent}
 Маржинальность: ${this.margin}%
 Рентабельность ROI: ${this.roi}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro v1.4.0`;
+Расчет выполнен в калькуляторе WB Income Pro v1.5.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
