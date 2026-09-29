@@ -64,7 +64,7 @@
                 <!-- Website version badge -->
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
                     <i class="fa-solid fa-code-branch text-[10px]"></i>
-                    <span>v1.8.0</span>
+                    <span>v1.9.0</span>
                 </span>
                 <button 
                     @click="openSettingsModal()" 
@@ -476,6 +476,28 @@
                             <span class="font-semibold text-purple-700" x-text="`≈ ${fmt(currentLogisticsPercent)}%`"></span>
                         </div>
 
+                        <!-- Warehouse coefficient (per category) -->
+                        <div class="flex items-center justify-between gap-3 pt-1 border-t border-purple-100/80">
+                            <label for="warehouseCoef" class="text-xs text-slate-600 flex items-center gap-1">
+                                <i class="fa-solid fa-warehouse text-purple-600 text-[10px]"></i>
+                                <span>Коэффициент склада</span>
+                            </label>
+                            <div class="relative w-24 shrink-0">
+                                <input
+                                    type="text"
+                                    inputmode="decimal"
+                                    id="warehouseCoef"
+                                    x-model="warehouseCoef"
+                                    @input="warehouseCoef = $event.target.value.replace(',', '.')"
+                                    class="block w-full rounded-lg border border-slate-200 bg-white pr-7 pl-2.5 py-1.5 text-xs text-slate-900 text-right focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-semibold"
+                                    placeholder="170"
+                                >
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5">
+                                    <span class="text-slate-400 text-xs">%</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex items-baseline justify-between pt-1 border-t border-purple-100/80">
                             <span class="text-xs text-slate-600">Стоимость доставки:</span>
                             <span class="text-base font-bold text-rose-600" x-text="formatRub(volumeLogisticsRub)">0 ₽</span>
@@ -483,23 +505,23 @@
 
                         <div class="text-[10px] text-slate-500 space-y-0.5 leading-snug">
                             <p x-show="volumeLiters > 0 && volumeLiters <= 1 && smallVolumeTariff">
-                                • Тариф до 1 л: <span class="font-medium text-slate-700" x-text="smallVolumeTariff ? `${fmt(smallVolumeTariff.from, 3)}–${fmt(smallVolumeTariff.upTo, 3)} л → ${smallVolumeTariff.price} ₽` : ''"></span>
+                                • Тариф до 1 л: <span class="font-medium text-slate-700" x-text="smallVolumeTariff ? `${fmt(smallVolumeTariff.from, 3)}–${fmt(smallVolumeTariff.upTo, 3)} л → ${smallVolumeTariff.price} ₽ × ${fmt(warehouseCoef)}%` : ''"></span>
                             </p>
                             <p x-show="volumeLiters <= 0">
                                 • Укажите габариты товара, чтобы рассчитать логистику.
                             </p>
                             <p x-show="volumeLiters > 1">
-                                • Формула: <span class="font-medium text-slate-700" x-text="`1 л (${baseLiterPrice} ₽) + ${fmt(Math.max(0, volumeLiters - 1))} доп. л × ${extraLiterPrice} ₽`"></span>
+                                • Формула: <span class="font-medium text-slate-700" x-text="`(1 л × ${baseLiterPrice} ₽ + ${fmt(Math.max(0, volumeLiters - 1))} доп. л × ${extraLiterPrice} ₽) × ${fmt(warehouseCoef)}%`"></span>
                             </p>
                         </div>
 
-                        <button 
-                            type="button" 
-                            @click="openSettingsModal()" 
+                        <button
+                            type="button"
+                            @click="openSettingsModal()"
                             class="w-full text-center py-1 text-[10px] font-semibold text-purple-700 hover:text-purple-900 bg-white/80 hover:bg-white rounded-lg border border-purple-200/80 transition-colors flex items-center justify-center gap-1"
                         >
                             <i class="fa-solid fa-sliders text-[9px]"></i>
-                            <span>Изменить тарифы (до 1 л: <span x-text="`${smallVolumePrices[0].price}–${smallVolumePrices[smallVolumePrices.length - 1].price} ₽`"></span>, 1-й л: <span x-text="`${baseLiterPrice} ₽`"></span>, доп. л: <span x-text="`${extraLiterPrice} ₽`"></span>)</span>
+                            <span>Изменить тарифы</span>
                         </button>
                     </div>
                 </div>
@@ -914,7 +936,7 @@
                                 <!-- Logistics Row -->
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Логистика WB</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="logisticsMode === 'volume' ? `Тариф по объёму (${fmt(volumeLiters)} л: ${baseLiterPrice}₽ + ${extraLiterPrice}₽/л)` : (logisticsMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Доставка до покупателя + возвраты')"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="logisticsMode === 'volume' ? `Тариф по объёму (${fmt(volumeLiters)} л, коэф. склада ${fmt(warehouseCoef)}%)` : (logisticsMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Доставка до покупателя + возвраты')"></td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(currentLogisticsPercent)}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(logisticsRub)}`"></td>
                                 </tr>
@@ -1581,6 +1603,7 @@
                 lengthCm: 15,
                 widthCm: 13,
                 heightCm: 10,
+                warehouseCoef: 170, // warehouse logistics coefficient, %
                 logisticsMode: 'percent', // 'percent', 'rub', or 'volume'
                 logisticsPercent: 5.5,
                 logisticsRubInput: 138,
@@ -1725,6 +1748,7 @@
                     this.$watch('lengthCm', saveTracker);
                     this.$watch('widthCm', saveTracker);
                     this.$watch('heightCm', saveTracker);
+                    this.$watch('warehouseCoef', saveTracker);
                     this.$watch('logisticsMode', saveTracker);
                     this.$watch('logisticsPercent', saveTracker);
                     this.$watch('logisticsRubInput', saveTracker);
@@ -1861,6 +1885,7 @@
                             this.lengthCm = params.lengthCm !== undefined ? params.lengthCm : 15;
                             this.widthCm = params.widthCm !== undefined ? params.widthCm : 13;
                             this.heightCm = params.heightCm !== undefined ? params.heightCm : 10;
+                            this.warehouseCoef = params.warehouseCoef !== undefined ? params.warehouseCoef : 170;
                             this.logisticsMode = params.logisticsMode !== undefined ? params.logisticsMode : 'percent';
                             this.logisticsPercent = params.logisticsPercent !== undefined ? params.logisticsPercent : 5.5;
                             this.logisticsRubInput = params.logisticsRubInput !== undefined ? params.logisticsRubInput : 138;
@@ -1892,6 +1917,7 @@
                         lengthCm: this.lengthCm,
                         widthCm: this.widthCm,
                         heightCm: this.heightCm,
+                        warehouseCoef: this.warehouseCoef,
                         logisticsMode: this.logisticsMode,
                         logisticsPercent: this.logisticsPercent,
                         logisticsRubInput: this.logisticsRubInput,
@@ -1916,6 +1942,7 @@
                     this.lengthCm = 15;
                     this.widthCm = 13;
                     this.heightCm = 10;
+                    this.warehouseCoef = 170;
                     this.logisticsMode = 'percent';
                     this.logisticsPercent = 5.5;
                     this.logisticsRubInput = 138;
@@ -2059,13 +2086,15 @@
                 get volumeLogisticsRub() {
                     const vol = this.volumeLiters;
                     if (vol <= 0) return 0;
+                    const coef = this.parseNum(this.warehouseCoef) / 100;
                     if (vol <= 1) {
                         const tariff = this.smallVolumeTariff;
-                        return tariff ? this.parseNum(tariff.price) : this.parseNum(this.baseLiterPrice);
+                        const price = tariff ? this.parseNum(tariff.price) : this.parseNum(this.baseLiterPrice);
+                        return price * coef;
                     }
                     const base = this.parseNum(this.baseLiterPrice);
                     const extra = this.parseNum(this.extraLiterPrice);
-                    return base + (vol - 1) * extra;
+                    return (base + (vol - 1) * extra) * coef;
                 },
 
                 // Calculate commission delta for FBS shipment speed
@@ -2510,7 +2539,7 @@
 Цена для покупателя: ${this.formatRub(this.buyerPrice)}
 ------------------------------------------
 Себестоимость товара: ${this.formatRub(this.selfCost)}
-Логистика WB (${this.fmt(this.currentLogisticsPercent)}%${this.logisticsMode === 'volume' ? `, по объёму ${this.fmt(this.volumeLiters)} л` : ''}): ${this.formatRub(this.logisticsRub)}
+Логистика WB (${this.fmt(this.currentLogisticsPercent)}%${this.logisticsMode === 'volume' ? `, по объёму ${this.fmt(this.volumeLiters)} л, коэф. склада ${this.fmt(this.warehouseCoef)}%` : ''}): ${this.formatRub(this.logisticsRub)}
 ${this.saleModel === 'fbw' ? `Хранение WB (${this.fmt(this.currentStoragePercent)}%): ${this.formatRub(this.storageRub)}\n` : ''}Маркетинг и реклама (${this.fmt(this.currentPromoPercent)}%): ${this.formatRub(this.promoRub)}
 Прочие накладные расходы: ${this.formatRub(this.otherExpenses)}
 Налог (${this.taxPercent}%): ${this.formatRub(this.taxRub)}
@@ -2520,7 +2549,7 @@ ${this.saleModel === 'fbw' ? `Хранение WB (${this.fmt(this.currentStorag
 Маржинальность: ${this.fmt(this.margin)}%
 Рентабельность ROI: ${this.fmt(this.roi)}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro v1.8.0`;
+Расчет выполнен в калькуляторе WB Income Pro v1.9.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
