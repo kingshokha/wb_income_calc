@@ -64,7 +64,7 @@
                 <!-- Website version badge -->
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 border border-purple-200/80 shadow-xs" title="Текущая версия сайта">
                     <i class="fa-solid fa-code-branch text-[10px]"></i>
-                    <span>v1.7.0</span>
+                    <span>v1.8.0</span>
                 </span>
                 <button 
                     @click="openSettingsModal()" 
@@ -174,7 +174,7 @@
                             <input type="radio" name="saleModel" value="fbs" x-model="saleModel" class="sr-only">
                             <span class="text-xs font-bold flex items-center gap-1.5">
                                 <i class="fa-solid fa-truck-ramp-box text-[10px]"></i>
-                                FBS (<span x-text="currentCommissionPercent"></span>%)
+                                FBS (<span x-text="fmt(currentCommissionPercent)"></span>%)
                             </span>
                         </label>
                     </div>
@@ -190,7 +190,7 @@
                         <span 
                             class="text-[10px] font-bold px-2 py-0.5 rounded-md transition-all"
                             :class="deliveryHoursDelta < 0 ? 'bg-emerald-100 text-emerald-800' : (deliveryHoursDelta === 0 ? 'bg-slate-100 text-slate-700' : 'bg-rose-100 text-rose-800')"
-                            x-text="deliveryHoursDelta < 0 ? `Скидка: ${deliveryHoursDelta} п.п.` : (deliveryHoursDelta === 0 ? 'Базовая комиссия' : `Надбавка: +${deliveryHoursDelta} п.п.`)"
+                            x-text="deliveryHoursDelta < 0 ? `Скидка: ${fmt(deliveryHoursDelta)} п.п.` : (deliveryHoursDelta === 0 ? 'Базовая комиссия' : `Надбавка: +${fmt(deliveryHoursDelta)} п.п.`)"
                         ></span>
                     </div>
                     
@@ -220,8 +220,8 @@
                     <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500 border-t border-purple-100">
                         <span>Итоговая комиссия FBS:</span>
                         <span class="font-bold text-purple-700 text-xs">
-                            <span x-text="`${currentCommissionPercent}%`"></span> 
-                            <span class="font-normal text-[10px] text-slate-400" x-text="`(${selectedCategory.commissionFbs}% ${deliveryHoursDelta >= 0 ? '+' : ''}${deliveryHoursDelta}%)`"></span>
+                            <span x-text="`${fmt(currentCommissionPercent)}%`"></span> 
+                            <span class="font-normal text-[10px] text-slate-400" x-text="`(${selectedCategory.commissionFbs}% ${deliveryHoursDelta >= 0 ? '+' : ''}${fmt(deliveryHoursDelta)}%)`"></span>
                         </span>
                     </div>
                     
@@ -243,7 +243,7 @@
                             <span>Габариты товара</span>
                         </span>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100/80">
-                            Объем: <span x-text="`${volumeLiters} л`"></span>
+                            Объем: <span x-text="`${fmt(volumeLiters)} л`"></span>
                         </span>
                     </div>
                     
@@ -439,7 +439,7 @@
                     <div x-show="logisticsMode === 'rub'" class="space-y-1.5">
                         <div class="flex justify-between items-center text-[10px] text-slate-400">
                             <span>Сумма доставки в рублях на 1 шт.</span>
-                            <span class="font-medium text-slate-500" x-text="`≈ ${currentLogisticsPercent}%`">0%</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${fmt(currentLogisticsPercent)}%`">0%</span>
                         </div>
                         <div class="relative rounded-xl shadow-sm">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -470,10 +470,10 @@
                         <div class="flex justify-between items-center text-[11px]">
                             <span class="text-purple-950 font-medium flex items-center gap-1">
                                 <i class="fa-solid fa-box-open text-purple-600"></i>
-                                <span>Объем: <strong x-text="`${volumeLiters} л`"></strong></span>
+                                <span>Объем: <strong x-text="`${fmt(volumeLiters)} л`"></strong></span>
                                 <span class="text-[10px] text-slate-400" x-text="`(${lengthCm}×${widthCm}×${heightCm} см)`"></span>
                             </span>
-                            <span class="font-semibold text-purple-700" x-text="`≈ ${currentLogisticsPercent}%`"></span>
+                            <span class="font-semibold text-purple-700" x-text="`≈ ${fmt(currentLogisticsPercent)}%`"></span>
                         </div>
 
                         <div class="flex items-baseline justify-between pt-1 border-t border-purple-100/80">
@@ -482,11 +482,14 @@
                         </div>
 
                         <div class="text-[10px] text-slate-500 space-y-0.5 leading-snug">
-                            <p x-show="volumeLiters <= 1">
-                                • Тариф: <span class="font-medium text-slate-700" x-text="`${baseLiterPrice} ₽ за 1-й литр`"></span>
+                            <p x-show="volumeLiters > 0 && volumeLiters <= 1 && smallVolumeTariff">
+                                • Тариф до 1 л: <span class="font-medium text-slate-700" x-text="smallVolumeTariff ? `${fmt(smallVolumeTariff.from, 3)}–${fmt(smallVolumeTariff.upTo, 3)} л → ${smallVolumeTariff.price} ₽` : ''"></span>
+                            </p>
+                            <p x-show="volumeLiters <= 0">
+                                • Укажите габариты товара, чтобы рассчитать логистику.
                             </p>
                             <p x-show="volumeLiters > 1">
-                                • Формула: <span class="font-medium text-slate-700" x-text="`1 л (${baseLiterPrice} ₽) + ${Math.max(0, Math.round((volumeLiters - 1)*100)/100)} доп. л × ${extraLiterPrice} ₽`"></span>
+                                • Формула: <span class="font-medium text-slate-700" x-text="`1 л (${baseLiterPrice} ₽) + ${fmt(Math.max(0, volumeLiters - 1))} доп. л × ${extraLiterPrice} ₽`"></span>
                             </p>
                         </div>
 
@@ -496,7 +499,7 @@
                             class="w-full text-center py-1 text-[10px] font-semibold text-purple-700 hover:text-purple-900 bg-white/80 hover:bg-white rounded-lg border border-purple-200/80 transition-colors flex items-center justify-center gap-1"
                         >
                             <i class="fa-solid fa-sliders text-[9px]"></i>
-                            <span>Изменить тарифы (1-й л: <span x-text="`${baseLiterPrice} ₽`"></span>, доп. л: <span x-text="`${extraLiterPrice} ₽`"></span>)</span>
+                            <span>Изменить тарифы (до 1 л: <span x-text="`${smallVolumePrices[0].price}–${smallVolumePrices[smallVolumePrices.length - 1].price} ₽`"></span>, 1-й л: <span x-text="`${baseLiterPrice} ₽`"></span>, доп. л: <span x-text="`${extraLiterPrice} ₽`"></span>)</span>
                         </button>
                     </div>
                 </div>
@@ -563,7 +566,7 @@
                     <div x-show="storageMode === 'rub'" class="space-y-1.5">
                         <div class="flex justify-between items-center text-[10px] text-slate-400">
                             <span>Сумма хранения в рублях на 1 шт.</span>
-                            <span class="font-medium text-slate-500" x-text="`≈ ${currentStoragePercent}%`">0%</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${fmt(currentStoragePercent)}%`">0%</span>
                         </div>
                         <div class="relative rounded-xl shadow-sm">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -652,7 +655,7 @@
                     <div x-show="promoMode === 'rub'" class="space-y-1.5">
                         <div class="flex justify-between items-center text-[10px] text-slate-400">
                             <span>Сумма в рублях на 1 шт.</span>
-                            <span class="font-medium text-slate-500" x-text="`≈ ${currentPromoPercent}%`">0%</span>
+                            <span class="font-medium text-slate-500" x-text="`≈ ${fmt(currentPromoPercent)}%`">0%</span>
                         </div>
                         <div class="relative rounded-xl shadow-sm">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -759,7 +762,7 @@
                     <!-- Margin Card -->
                     <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Маржинальность</p>
-                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${margin}%`"></p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${fmt(margin)}%`"></p>
                         <span class="inline-flex mt-2 items-center gap-1 rounded-full bg-slate-50 text-slate-600 px-2 py-0.5 text-[10px] font-bold">
                             Доля чистой прибыли
                         </span>
@@ -768,7 +771,7 @@
                     <!-- ROI Card -->
                     <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Рентабельность ROI</p>
-                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${roi}%`"></p>
+                        <p class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl" x-text="`${fmt(roi)}%`"></p>
                         <span class="inline-flex mt-2 items-center gap-1 rounded-full bg-slate-50 text-slate-600 px-2 py-0.5 text-[10px] font-bold">
                             Окупаемость вложений
                         </span>
@@ -780,36 +783,36 @@
                     
                     <div class="relative h-6 w-full overflow-hidden rounded-full bg-slate-100 flex shadow-inner">
                         <!-- Comm -->
-                        <div x-show="commissionRub > 0" :style="`width: ${getPercentOfTotal(commissionRub)}%`" class="bg-purple-500 relative group" :title="`Комиссия: ${getPercentOfTotal(commissionRub)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(commissionRub)}%`"></span>
+                        <div x-show="commissionRub > 0" :style="`width: ${getPercentOfTotal(commissionRub)}%`" class="bg-purple-500 relative group" :title="`Комиссия: ${fmt(getPercentOfTotal(commissionRub))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(commissionRub))}%`"></span>
                         </div>
                         <!-- SelfCost -->
-                        <div x-show="selfCost > 0" :style="`width: ${getPercentOfTotal(selfCost)}%`" class="bg-slate-700 relative" :title="`Себестоимость: ${getPercentOfTotal(selfCost)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(selfCost)}%`"></span>
+                        <div x-show="selfCost > 0" :style="`width: ${getPercentOfTotal(selfCost)}%`" class="bg-slate-700 relative" :title="`Себестоимость: ${fmt(getPercentOfTotal(selfCost))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(selfCost))}%`"></span>
                         </div>
                         <!-- Logistics -->
-                        <div x-show="logisticsRub > 0" :style="`width: ${getPercentOfTotal(logisticsRub)}%`" class="bg-teal-500 relative" :title="`Логистика: ${getPercentOfTotal(logisticsRub)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(logisticsRub)}%`"></span>
+                        <div x-show="logisticsRub > 0" :style="`width: ${getPercentOfTotal(logisticsRub)}%`" class="bg-teal-500 relative" :title="`Логистика: ${fmt(getPercentOfTotal(logisticsRub))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(logisticsRub))}%`"></span>
                         </div>
                         <!-- Storage -->
-                        <div x-show="saleModel === 'fbw' && storageRub > 0" :style="`width: ${getPercentOfTotal(storageRub)}%`" class="bg-sky-400 relative" :title="`Хранение: ${getPercentOfTotal(storageRub)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(storageRub)}%`"></span>
+                        <div x-show="saleModel === 'fbw' && storageRub > 0" :style="`width: ${getPercentOfTotal(storageRub)}%`" class="bg-sky-400 relative" :title="`Хранение: ${fmt(getPercentOfTotal(storageRub))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(storageRub))}%`"></span>
                         </div>
                         <!-- Promo -->
-                        <div x-show="promoRub > 0" :style="`width: ${getPercentOfTotal(promoRub)}%`" class="bg-amber-500 relative" :title="`Продвижение: ${getPercentOfTotal(promoRub)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(promoRub)}%`"></span>
+                        <div x-show="promoRub > 0" :style="`width: ${getPercentOfTotal(promoRub)}%`" class="bg-amber-500 relative" :title="`Продвижение: ${fmt(getPercentOfTotal(promoRub))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(promoRub))}%`"></span>
                         </div>
                         <!-- Other -->
-                        <div x-show="otherExpenses > 0" :style="`width: ${getPercentOfTotal(otherExpenses)}%`" class="bg-blue-500 relative" :title="`Прочее: ${getPercentOfTotal(otherExpenses)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(otherExpenses)}%`"></span>
+                        <div x-show="otherExpenses > 0" :style="`width: ${getPercentOfTotal(otherExpenses)}%`" class="bg-blue-500 relative" :title="`Прочее: ${fmt(getPercentOfTotal(otherExpenses))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(otherExpenses))}%`"></span>
                         </div>
                         <!-- Tax -->
-                        <div x-show="taxRub > 0" :style="`width: ${getPercentOfTotal(taxRub)}%`" class="bg-red-500 relative" :title="`Налог: ${getPercentOfTotal(taxRub)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(taxRub)}%`"></span>
+                        <div x-show="taxRub > 0" :style="`width: ${getPercentOfTotal(taxRub)}%`" class="bg-red-500 relative" :title="`Налог: ${fmt(getPercentOfTotal(taxRub))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(taxRub))}%`"></span>
                         </div>
                         <!-- Profit -->
-                        <div x-show="profit > 0" :style="`width: ${getPercentOfTotal(profit)}%`" class="bg-emerald-500 relative" :title="`Прибыль: ${getPercentOfTotal(profit)}%`">
-                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${getPercentOfTotal(profit)}%`"></span>
+                        <div x-show="profit > 0" :style="`width: ${getPercentOfTotal(profit)}%`" class="bg-emerald-500 relative" :title="`Прибыль: ${fmt(getPercentOfTotal(profit))}%`">
+                            <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white truncate px-1" x-text="`${fmt(getPercentOfTotal(profit))}%`"></span>
                         </div>
                     </div>
 
@@ -817,7 +820,7 @@
                     <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-medium text-slate-500">
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-purple-500 inline-block"></span>
-                            <span>Комиссия WB (<span x-text="`${currentCommissionPercent}%`"></span>)</span>
+                            <span>Комиссия WB (<span x-text="`${fmt(currentCommissionPercent)}%`"></span>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-slate-700 inline-block"></span>
@@ -825,15 +828,15 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-teal-500 inline-block"></span>
-                            <span>Логистика (<span x-text="`${currentLogisticsPercent}%`"></span>)</span>
+                            <span>Логистика (<span x-text="`${fmt(currentLogisticsPercent)}%`"></span>)</span>
                         </div>
                         <div x-show="saleModel === 'fbw'" class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-sky-400 inline-block"></span>
-                            <span>Хранение (<span x-text="`${currentStoragePercent}%`"></span>)</span>
+                            <span>Хранение (<span x-text="`${fmt(currentStoragePercent)}%`"></span>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-amber-500 inline-block"></span>
-                            <span>Продвижение (<span x-text="`${currentPromoPercent}%`"></span>)</span>
+                            <span>Продвижение (<span x-text="`${fmt(currentPromoPercent)}%`"></span>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-sm bg-blue-500 inline-block"></span>
@@ -895,8 +898,8 @@
                                         <span>Комиссия WB</span>
                                         <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded" x-text="saleModel.toUpperCase()"></span>
                                     </td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="saleModel === 'fbs' ? `FBS (отгрузка ${deliveryHours} ч: ${deliveryHoursDelta >= 0 ? '+' : ''}${deliveryHoursDelta}%)` : 'Для модели FBW'"></td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentCommissionPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="saleModel === 'fbs' ? `FBS (отгрузка ${deliveryHours} ч: ${deliveryHoursDelta >= 0 ? '+' : ''}${fmt(deliveryHoursDelta)}%)` : 'Для модели FBW'"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(currentCommissionPercent)}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(commissionRub)}`"></td>
                                 </tr>
 
@@ -904,15 +907,15 @@
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Себестоимость товара</td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-400">Производство, закупка, упаковка</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${getPercentOfTotal(selfCost)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(getPercentOfTotal(selfCost))}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(selfCost)}`"></td>
                                 </tr>
 
                                 <!-- Logistics Row -->
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Логистика WB</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="logisticsMode === 'volume' ? `Тариф по объёму (${volumeLiters} л: ${baseLiterPrice}₽ + ${extraLiterPrice}₽/л)` : (logisticsMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Доставка до покупателя + возвраты')"></td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentLogisticsPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="logisticsMode === 'volume' ? `Тариф по объёму (${fmt(volumeLiters)} л: ${baseLiterPrice}₽ + ${extraLiterPrice}₽/л)` : (logisticsMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Доставка до покупателя + возвраты')"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(currentLogisticsPercent)}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(logisticsRub)}`"></td>
                                 </tr>
 
@@ -920,7 +923,7 @@
                                 <tr x-show="saleModel === 'fbw'" class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Хранение на складах</td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="storageMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Плата за объём хранения в день'"></td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentStoragePercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(currentStoragePercent)}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(storageRub)}`"></td>
                                 </tr>
 
@@ -928,7 +931,7 @@
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Реклама и продвижение</td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-400" x-text="promoMode === 'rub' ? 'Фиксированная сумма в ₽' : 'Внутреннее продвижение WB'"></td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${currentPromoPercent}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(currentPromoPercent)}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(promoRub)}`"></td>
                                 </tr>
 
@@ -936,7 +939,7 @@
                                 <tr class="hover:bg-slate-50/40 transition-colors">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">Прочие издержки</td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-400">Брак, накладные расходы</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${getPercentOfTotal(otherExpenses)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500" x-text="`${fmt(getPercentOfTotal(otherExpenses))}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-medium text-rose-600" x-text="`-${formatRub(otherExpenses)}`"></td>
                                 </tr>
 
@@ -952,7 +955,7 @@
                                 <tr class="bg-slate-50/30">
                                     <td class="px-5 py-3.5 font-semibold text-slate-900">Итого расходы</td>
                                     <td class="px-5 py-3.5 text-right text-xs text-slate-400">Всего затрат на 1 шт.</td>
-                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500 font-semibold" x-text="`${getPercentOfTotal(totalExpenses)}%`"></td>
+                                    <td class="px-5 py-3.5 text-right text-xs text-slate-500 font-semibold" x-text="`${fmt(getPercentOfTotal(totalExpenses))}%`"></td>
                                     <td class="px-5 py-3.5 text-right font-bold text-slate-900" x-text="formatRub(totalExpenses)"></td>
                                 </tr>
 
@@ -960,7 +963,7 @@
                                 <tr :class="profit >= 0 ? 'bg-emerald-50/50' : 'bg-rose-50/50'">
                                     <td class="px-5 py-4 font-bold text-slate-950">Итого чистая прибыль</td>
                                     <td class="px-5 py-4 text-right text-xs text-slate-500 font-semibold" :class="profit >= 0 ? 'text-emerald-700' : 'text-rose-700'" x-text="profit >= 0 ? 'ПРИБЫЛЬ' : 'УБЫТОК'"></td>
-                                    <td class="px-5 py-4 text-right text-xs text-slate-600 font-bold" x-text="`${margin}%`"></td>
+                                    <td class="px-5 py-4 text-right text-xs text-slate-600 font-bold" x-text="`${fmt(margin)}%`"></td>
                                     <td class="px-5 py-4 text-right text-base font-extrabold" :class="profit >= 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="formatRub(profit)"></td>
                                 </tr>
                             </tbody>
@@ -1216,6 +1219,24 @@
                             </div>
                         </div>
 
+                        <div x-show="allTokens.length > 0" class="space-y-1.5">
+                            <label for="importToken" class="block text-xs font-semibold text-slate-700 flex justify-between">
+                                <span>Кабинет (API-токен)</span>
+                                <a href="#" @click.prevent="closeImportModal(); openSettingsModal()" class="text-[10px] font-medium text-purple-600 hover:text-purple-700">Настроить</a>
+                            </label>
+                            <select
+                                id="importToken"
+                                :value="activeTokenId"
+                                @change="setActiveToken($event.target.value)"
+                                :disabled="importLoading"
+                                class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-500 font-medium disabled:opacity-60"
+                            >
+                                <template x-for="t in allTokens" :key="t.id">
+                                    <option :value="t.id" x-text="t.name"></option>
+                                </template>
+                            </select>
+                        </div>
+
                         <div x-show="!wbApiToken" class="rounded-xl bg-amber-50 p-3 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-2">
                             <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
                             <span>API-токен не задан. Добавьте <code>WB_API_TOKEN</code> в .env или укажите его в настройках.</span>
@@ -1387,6 +1408,31 @@
                             </div>
                         </div>
 
+                        <!-- Tariff brackets for goods under 1 liter -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-semibold text-slate-700 flex justify-between">
+                                <span>Тарифы для товаров до 1 литра</span>
+                                <span class="text-[10px] font-normal text-slate-400">цена за товар</span>
+                            </label>
+                            <template x-for="(t, idx) in tempSmallVolumePrices" :key="idx">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-slate-500 w-28 shrink-0" x-text="`${fmt(t.from, 3)} – ${fmt(t.upTo, 3)} л`"></span>
+                                    <div class="relative rounded-lg shadow-sm flex-1">
+                                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <span class="text-slate-400 text-xs">₽</span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            inputmode="decimal"
+                                            x-model="t.price"
+                                            @input="t.price = $event.target.value.replace(',', '.')"
+                                            class="block w-full rounded-lg border border-slate-200 pl-7 pr-3 py-1.5 text-xs text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-medium"
+                                        >
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
                         <!-- Calculation preview -->
                         <div class="rounded-xl bg-purple-50/70 p-3 border border-purple-100 text-xs text-purple-950 space-y-1">
                             <p class="font-semibold flex items-center gap-1.5">
@@ -1399,52 +1445,105 @@
                             </p>
                         </div>
 
-                        <!-- WB API Token (default from .env) -->
-                        <div class="space-y-1.5 pt-4 border-t border-slate-100">
-                            <label for="tempWbApiToken" class="block text-xs font-semibold text-slate-700 flex justify-between items-center">
-                                <span class="flex items-center gap-1.5">
+                        <!-- WB API tokens: several may be stored, one is active -->
+                        <div class="space-y-2 pt-4 border-t border-slate-100">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                                     <i class="fa-solid fa-key text-purple-600"></i>
-                                    <span>API-токен WB</span>
+                                    <span>API-токены WB</span>
                                 </span>
-                                <span
-                                    class="text-[10px] font-medium"
-                                    :class="envWbApiToken && tempWbApiToken === envWbApiToken ? 'text-emerald-600' : 'text-slate-400'"
-                                    x-text="envWbApiToken ? (tempWbApiToken === envWbApiToken ? 'из .env' : 'переопределён') : '.env не найден'"
-                                ></span>
-                            </label>
-                            <div class="relative rounded-xl shadow-sm">
-                                <input
-                                    :type="showTokenValue ? 'text' : 'password'"
-                                    id="tempWbApiToken"
-                                    x-model.trim="tempWbApiToken"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    class="block w-full rounded-xl border border-slate-200 pl-3.5 pr-20 py-2.5 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-medium font-mono"
-                                    placeholder="WB_API_TOKEN из .env"
+                                <button
+                                    type="button"
+                                    @click="showTokenValue = !showTokenValue"
+                                    class="text-[10px] font-medium text-slate-400 hover:text-purple-600 flex items-center gap-1"
                                 >
-                                <div class="absolute inset-y-0 right-0 flex items-center gap-2 pr-3">
+                                    <i class="fa-solid" :class="showTokenValue ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    <span x-text="showTokenValue ? 'Скрыть' : 'Показать'"></span>
+                                </button>
+                            </div>
+
+                            <p class="text-[10px] text-slate-400 leading-snug">
+                                Активный токен отмечен точкой — он используется при выгрузке товара. Токены из .env берутся из переменных <code class="text-slate-600">WB_API_TOKEN</code> и <code class="text-slate-600">WB_API_TOKEN_ИМЯ</code>.
+                            </p>
+
+                            <!-- Tokens from .env (read-only) -->
+                            <template x-for="t in envTokens" :key="t.id">
+                                <div
+                                    class="flex items-center gap-2 rounded-xl border p-2.5"
+                                    :class="tempActiveTokenId === t.id ? 'border-purple-300 bg-purple-50/60' : 'border-slate-200 bg-slate-50/60'"
+                                >
                                     <button
                                         type="button"
-                                        x-show="envWbApiToken && tempWbApiToken !== envWbApiToken"
-                                        @click="tempWbApiToken = envWbApiToken"
-                                        class="text-slate-400 hover:text-purple-600 text-xs"
-                                        title="Вернуть значение из .env"
+                                        @click="tempActiveTokenId = t.id"
+                                        class="shrink-0 h-4 w-4 rounded-full border flex items-center justify-center"
+                                        :class="tempActiveTokenId === t.id ? 'border-purple-600' : 'border-slate-300'"
+                                        :title="tempActiveTokenId === t.id ? 'Активный токен' : 'Сделать активным'"
                                     >
-                                        <i class="fa-solid fa-rotate-left"></i>
+                                        <span x-show="tempActiveTokenId === t.id" class="h-2 w-2 rounded-full bg-purple-600"></span>
                                     </button>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-semibold text-slate-800 truncate" x-text="t.name"></p>
+                                        <p class="text-[10px] text-slate-400 font-mono truncate" x-text="showTokenValue ? t.token : maskToken(t.token)"></p>
+                                    </div>
+                                    <span class="shrink-0 text-[10px] text-emerald-600 font-medium">из .env</span>
+                                </div>
+                            </template>
+
+                            <!-- User tokens (editable) -->
+                            <template x-for="t in tempTokens" :key="t.id">
+                                <div
+                                    class="flex items-center gap-2 rounded-xl border p-2.5"
+                                    :class="tempActiveTokenId === t.id ? 'border-purple-300 bg-purple-50/60' : 'border-slate-200'"
+                                >
                                     <button
                                         type="button"
-                                        @click="showTokenValue = !showTokenValue"
-                                        class="text-slate-400 hover:text-purple-600 text-xs"
-                                        :title="showTokenValue ? 'Скрыть токен' : 'Показать токен'"
+                                        @click="tempActiveTokenId = t.id"
+                                        class="shrink-0 h-4 w-4 rounded-full border flex items-center justify-center"
+                                        :class="tempActiveTokenId === t.id ? 'border-purple-600' : 'border-slate-300'"
+                                        :title="tempActiveTokenId === t.id ? 'Активный токен' : 'Сделать активным'"
                                     >
-                                        <i class="fa-solid" :class="showTokenValue ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                        <span x-show="tempActiveTokenId === t.id" class="h-2 w-2 rounded-full bg-purple-600"></span>
+                                    </button>
+                                    <div class="min-w-0 flex-1 space-y-1">
+                                        <input
+                                            type="text"
+                                            x-model="t.name"
+                                            autocomplete="off"
+                                            class="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                            placeholder="Название кабинета"
+                                        >
+                                        <input
+                                            :type="showTokenValue ? 'text' : 'password'"
+                                            x-model.trim="t.token"
+                                            autocomplete="off"
+                                            spellcheck="false"
+                                            class="block w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-700 font-mono focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                            placeholder="Токен с доступами «Контент» и «Цены и скидки»"
+                                        >
+                                    </div>
+                                    <button
+                                        type="button"
+                                        @click="removeTempToken(t.id)"
+                                        class="shrink-0 text-slate-300 hover:text-rose-600 text-xs"
+                                        title="Удалить токен"
+                                    >
+                                        <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
-                            </div>
-                            <p class="text-[10px] text-slate-400 leading-snug">
-                                Нужны доступы «Контент» и «Цены и скидки». Значение по умолчанию берётся из <code class="text-slate-600">WB_API_TOKEN</code> в файле .env.
+                            </template>
+
+                            <p x-show="envTokens.length === 0 && tempTokens.length === 0" class="text-[11px] text-slate-400 text-center py-2">
+                                Токенов пока нет. Добавьте токен или укажите WB_API_TOKEN в .env.
                             </p>
+
+                            <button
+                                type="button"
+                                @click="addTempToken()"
+                                class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:border-purple-300 hover:text-purple-700"
+                            >
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Добавить токен</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1500,12 +1599,24 @@
                 extraLiterPrice: 14,
                 tempBaseLiterPrice: 46,
                 tempExtraLiterPrice: 14,
+
+                // Tariff brackets for goods under 1 liter (price per item, not per liter)
+                smallVolumePrices: [
+                    { from: 0.001, upTo: 0.2, price: 23 },
+                    { from: 0.201, upTo: 0.4, price: 26 },
+                    { from: 0.401, upTo: 0.6, price: 29 },
+                    { from: 0.601, upTo: 0.8, price: 30 },
+                    { from: 0.801, upTo: 1, price: 32 }
+                ],
+                tempSmallVolumePrices: [],
                 showSettingsModal: false,
 
-                // WB API token: .env value is the default, settings may override it
-                envWbApiToken: '',
-                wbApiToken: '',
-                tempWbApiToken: '',
+                // WB API tokens: entries from .env plus user-defined ones, with one active
+                envTokens: [],
+                userTokens: [],
+                activeTokenId: '',
+                tempTokens: [],
+                tempActiveTokenId: '',
                 showTokenValue: false,
 
                 // Import from WB seller cabinet
@@ -1554,9 +1665,9 @@
                     // Load commissions dictionary
                     this.loadCommissionsDb();
 
-                    // Restore WB API token (settings override, otherwise .env)
-                    this.wbApiToken = localStorage.getItem('wb_pro_api_token') || '';
-                    this.loadEnvToken();
+                    // Restore WB API tokens (.env entries are added once the file is read)
+                    this.loadStoredTokens();
+                    this.loadEnvTokens();
 
                     // Restore global logistics settings
                     const savedSettings = localStorage.getItem('wb_pro_logistics_settings');
@@ -1565,6 +1676,12 @@
                             const s = JSON.parse(savedSettings);
                             if (s.baseLiterPrice !== undefined) this.baseLiterPrice = this.parseNum(s.baseLiterPrice);
                             if (s.extraLiterPrice !== undefined) this.extraLiterPrice = this.parseNum(s.extraLiterPrice);
+                            if (Array.isArray(s.smallVolumePrices) && s.smallVolumePrices.length) {
+                                this.smallVolumePrices = this.smallVolumePrices.map((t, i) => {
+                                    const saved = s.smallVolumePrices[i];
+                                    return saved && saved.price !== undefined ? { ...t, price: this.parseNum(saved.price) } : t;
+                                });
+                            }
                         } catch (e) {}
                     }
 
@@ -1637,17 +1754,82 @@
                     }
                 },
 
-                // Read WB_API_TOKEN from .env next to index.html
-                async loadEnvToken() {
+                // Currently active token value used for every WB API call
+                get wbApiToken() {
+                    const found = this.allTokens.find(t => t.id === this.activeTokenId);
+                    if (found) return found.token;
+                    return this.allTokens.length ? this.allTokens[0].token : '';
+                },
+
+                get allTokens() {
+                    return [...this.envTokens, ...this.userTokens];
+                },
+
+                get activeTokenName() {
+                    const found = this.allTokens.find(t => t.id === this.activeTokenId);
+                    if (found) return found.name;
+                    return this.allTokens.length ? this.allTokens[0].name : '';
+                },
+
+                // Restore user tokens (and migrate the single-token format of v1.7.0)
+                loadStoredTokens() {
+                    const saved = localStorage.getItem('wb_pro_api_tokens');
+                    if (saved) {
+                        try {
+                            const list = JSON.parse(saved);
+                            if (Array.isArray(list)) {
+                                this.userTokens = list
+                                    .filter(t => t && t.token)
+                                    .map((t, i) => ({ id: t.id || `user_${i + 1}`, name: t.name || `Токен ${i + 1}`, token: t.token }));
+                            }
+                        } catch(e) {}
+                    } else {
+                        const legacy = localStorage.getItem('wb_pro_api_token');
+                        if (legacy) {
+                            this.userTokens = [{ id: 'user_1', name: 'Мой токен', token: legacy }];
+                            this.saveTokensToStorage();
+                            localStorage.removeItem('wb_pro_api_token');
+                        }
+                    }
+                    this.activeTokenId = localStorage.getItem('wb_pro_active_token') || (this.userTokens[0] ? this.userTokens[0].id : '');
+                },
+
+                saveTokensToStorage() {
+                    localStorage.setItem('wb_pro_api_tokens', JSON.stringify(this.userTokens));
+                    localStorage.setItem('wb_pro_active_token', this.activeTokenId || '');
+                },
+
+                setActiveToken(id) {
+                    this.activeTokenId = id;
+                    localStorage.setItem('wb_pro_active_token', id || '');
+                },
+
+                // Read WB_API_TOKEN (and WB_API_TOKEN_<NAME>) from .env next to index.html
+                async loadEnvTokens() {
                     try {
                         const res = await fetch('./.env', { cache: 'no-store' });
                         if (!res.ok) return;
                         const text = await res.text();
-                        const match = text.match(/^\s*(?:export\s+)?WB_API_TOKEN\s*=\s*(.*)$/m);
-                        if (!match) return;
-                        const value = match[1].trim().replace(/^(['"])(.*)\1$/, '$2');
-                        this.envWbApiToken = value;
-                        if (!this.wbApiToken) this.wbApiToken = value;
+                        const found = [];
+                        const re = /^\s*(?:export\s+)?WB_API_TOKEN(?:_([A-Za-z0-9_]+))?\s*=\s*(.*)$/gm;
+                        let m;
+                        while ((m = re.exec(text)) !== null) {
+                            const value = m[2].trim().replace(/^(['"])(.*)\1$/, '$2');
+                            if (!value) continue;
+                            const suffix = m[1] ? m[1].replace(/_/g, ' ') : '';
+                            found.push({
+                                id: `env:${m[1] || 'default'}`,
+                                name: suffix ? `.env · ${suffix}` : '.env',
+                                token: value,
+                                fromEnv: true
+                            });
+                        }
+                        this.envTokens = found;
+
+                        // Nothing chosen yet (or the chosen one is gone) — fall back to the first .env token
+                        if (found.length && !this.allTokens.some(t => t.id === this.activeTokenId)) {
+                            this.setActiveToken(found[0].id);
+                        }
                     } catch(e) {
                         console.warn('Не удалось загрузить .env:', e);
                     }
@@ -1751,7 +1933,9 @@
                 openSettingsModal() {
                     this.tempBaseLiterPrice = this.baseLiterPrice;
                     this.tempExtraLiterPrice = this.extraLiterPrice;
-                    this.tempWbApiToken = this.wbApiToken;
+                    this.tempSmallVolumePrices = this.smallVolumePrices.map(t => ({ ...t }));
+                    this.tempTokens = this.userTokens.map(t => ({ ...t }));
+                    this.tempActiveTokenId = this.activeTokenId;
                     this.showTokenValue = false;
                     this.showSettingsModal = true;
                 },
@@ -1760,23 +1944,41 @@
                     this.showSettingsModal = false;
                 },
 
+                addTempToken() {
+                    const id = `user_${Date.now()}`;
+                    this.tempTokens.push({ id, name: `Токен ${this.tempTokens.length + 1}`, token: '' });
+                    if (!this.tempActiveTokenId) this.tempActiveTokenId = id;
+                },
+
+                removeTempToken(id) {
+                    this.tempTokens = this.tempTokens.filter(t => t.id !== id);
+                    if (this.tempActiveTokenId === id) {
+                        const fallback = this.envTokens[0] || this.tempTokens[0];
+                        this.tempActiveTokenId = fallback ? fallback.id : '';
+                    }
+                },
+
                 saveSettings() {
                     this.baseLiterPrice = Math.max(0, this.parseNum(this.tempBaseLiterPrice) || 46);
                     this.extraLiterPrice = Math.max(0, this.parseNum(this.tempExtraLiterPrice) || 14);
+                    this.smallVolumePrices = this.smallVolumePrices.map((t, i) => {
+                        const edited = this.tempSmallVolumePrices[i];
+                        return { ...t, price: Math.max(0, this.parseNum(edited ? edited.price : t.price)) };
+                    });
                     localStorage.setItem('wb_pro_logistics_settings', JSON.stringify({
                         baseLiterPrice: this.baseLiterPrice,
-                        extraLiterPrice: this.extraLiterPrice
+                        extraLiterPrice: this.extraLiterPrice,
+                        smallVolumePrices: this.smallVolumePrices
                     }));
 
-                    // Token equal to .env (or empty) is not stored, so .env stays the source of truth
-                    const token = (this.tempWbApiToken || '').trim();
-                    if (!token || token === this.envWbApiToken) {
-                        localStorage.removeItem('wb_pro_api_token');
-                        this.wbApiToken = this.envWbApiToken;
-                    } else {
-                        localStorage.setItem('wb_pro_api_token', token);
-                        this.wbApiToken = token;
-                    }
+                    // Tokens without a value are dropped; .env entries are not stored here
+                    this.userTokens = this.tempTokens
+                        .map(t => ({ id: t.id, name: (t.name || '').trim() || 'Без названия', token: (t.token || '').trim() }))
+                        .filter(t => t.token);
+                    this.activeTokenId = this.allTokens.some(t => t.id === this.tempActiveTokenId)
+                        ? this.tempActiveTokenId
+                        : (this.allTokens[0] ? this.allTokens[0].id : '');
+                    this.saveTokensToStorage();
 
                     this.showSettingsModal = false;
                     this.showToast('Настройки сохранены!', 'fa-circle-check');
@@ -1843,20 +2045,27 @@
                     const w = this.parseNum(this.widthCm);
                     const h = this.parseNum(this.heightCm);
                     if (!l || !w || !h) return 0;
-                    const vol = (l * w * h) / 1000;
-                    return Math.round(vol * 100) / 100;
+                    return (l * w * h) / 1000;
+                },
+
+                // Tariff bracket applied to goods under 1 liter
+                get smallVolumeTariff() {
+                    const vol = this.volumeLiters;
+                    if (vol <= 0 || vol > 1) return null;
+                    return this.smallVolumePrices.find(t => vol <= t.upTo) || null;
                 },
 
                 // Volume-based logistics calculation in rubles
                 get volumeLogisticsRub() {
                     const vol = this.volumeLiters;
+                    if (vol <= 0) return 0;
+                    if (vol <= 1) {
+                        const tariff = this.smallVolumeTariff;
+                        return tariff ? this.parseNum(tariff.price) : this.parseNum(this.baseLiterPrice);
+                    }
                     const base = this.parseNum(this.baseLiterPrice);
                     const extra = this.parseNum(this.extraLiterPrice);
-                    if (vol <= 0) return base;
-                    if (vol <= 1) return base;
-                    const extraLiters = vol - 1;
-                    const total = base + extraLiters * extra;
-                    return Math.round(total * 10) / 10;
+                    return base + (vol - 1) * extra;
                 },
 
                 // Calculate commission delta for FBS shipment speed
@@ -1870,11 +2079,11 @@
                     } else if (h <= 48) {
                         return 0.0;
                     } else if (h <= 54) {
-                        return Math.round((h - 48) * 0.30 * 100) / 100;
+                        return (h - 48) * 0.30;
                     } else if (h <= 60) {
-                        return Math.round((h - 48) * 0.35 * 100) / 100;
+                        return (h - 48) * 0.35;
                     } else {
-                        return Math.round((h - 48) * 0.45 * 100) / 100;
+                        return (h - 48) * 0.45;
                     }
                 },
 
@@ -1891,7 +2100,7 @@
                     } else {
                         const base = this.parseNum(cat.commissionFbs);
                         const effective = base + this.deliveryHoursDelta;
-                        return Math.max(0, Math.round(effective * 100) / 100);
+                        return Math.max(0, effective);
                     }
                 },
 
@@ -1899,7 +2108,7 @@
                     const price = this.parseNum(this.price);
                     if (!price) return 0;
                     const spp = this.parseNum(this.sppPercent);
-                    return Math.round(price * (spp / 100));
+                    return price * (spp / 100);
                 },
 
                 get buyerPrice() {
@@ -1911,7 +2120,7 @@
                 get commissionRub() {
                     const price = this.parseNum(this.price);
                     if (!price) return 0;
-                    return Math.round(price * (this.currentCommissionPercent / 100));
+                    return price * (this.currentCommissionPercent / 100);
                 },
 
                 get currentLogisticsPercent() {
@@ -1921,11 +2130,11 @@
                     } else if (this.logisticsMode === 'rub') {
                         if (!price) return 0;
                         const rub = this.parseNum(this.logisticsRubInput);
-                        return Math.round((rub / price) * 1000) / 10;
+                        return (rub / price) * 100;
                     } else { // 'volume'
                         if (!price) return 0;
                         const rub = this.volumeLogisticsRub;
-                        return Math.round((rub / price) * 1000) / 10;
+                        return (rub / price) * 100;
                     }
                 },
 
@@ -1933,11 +2142,11 @@
                     const price = this.parseNum(this.price);
                     if (this.logisticsMode === 'percent') {
                         if (!price) return 0;
-                        return Math.round(price * (this.parseNum(this.logisticsPercent) / 100));
+                        return price * (this.parseNum(this.logisticsPercent) / 100);
                     } else if (this.logisticsMode === 'rub') {
-                        return Math.round(this.parseNum(this.logisticsRubInput));
+                        return this.parseNum(this.logisticsRubInput);
                     } else { // 'volume'
-                        return Math.round(this.volumeLogisticsRub);
+                        return this.volumeLogisticsRub;
                     }
                 },
 
@@ -1948,7 +2157,7 @@
                         return this.parseNum(this.storagePercent);
                     } else {
                         const rub = this.parseNum(this.storageRubInput);
-                        return Math.round((rub / price) * 1000) / 10;
+                        return (rub / price) * 100;
                     }
                 },
 
@@ -1956,9 +2165,9 @@
                     const price = this.parseNum(this.price);
                     if (this.saleModel === 'fbs' || !price) return 0;
                     if (this.storageMode === 'percent') {
-                        return Math.round(price * (this.parseNum(this.storagePercent) / 100));
+                        return price * (this.parseNum(this.storagePercent) / 100);
                     } else {
-                        return Math.round(this.parseNum(this.storageRubInput));
+                        return this.parseNum(this.storageRubInput);
                     }
                 },
 
@@ -1969,7 +2178,7 @@
                     } else {
                         if (!price) return 0;
                         const rub = this.parseNum(this.promoRubInput);
-                        return Math.round((rub / price) * 1000) / 10;
+                        return (rub / price) * 100;
                     }
                 },
 
@@ -1977,51 +2186,65 @@
                     const price = this.parseNum(this.price);
                     if (this.promoMode === 'percent') {
                         if (!price) return 0;
-                        return Math.round(price * (this.parseNum(this.promoPercent) / 100));
+                        return price * (this.parseNum(this.promoPercent) / 100);
                     } else {
-                        return Math.round(this.parseNum(this.promoRubInput));
+                        return this.parseNum(this.promoRubInput);
                     }
                 },
 
                 get taxRub() {
                     const price = this.parseNum(this.price);
                     if (!price) return 0;
-                    return Math.round(price * (this.parseNum(this.taxPercent) / 100));
+                    return price * (this.parseNum(this.taxPercent) / 100);
                 },
 
                 get totalExpenses() {
                     const selfCost = this.parseNum(this.selfCost);
                     const other = this.parseNum(this.otherExpenses);
-                    return Math.round(selfCost + this.commissionRub + this.logisticsRub + this.storageRub + this.promoRub + other + this.taxRub);
+                    return selfCost + this.commissionRub + this.logisticsRub + this.storageRub + this.promoRub + other + this.taxRub;
                 },
 
                 get profit() {
                     const price = this.parseNum(this.price);
-                    return Math.round(price - this.totalExpenses);
+                    return price - this.totalExpenses;
                 },
 
                 get margin() {
                     const price = this.parseNum(this.price);
                     if (!price || this.profit <= 0) return 0;
-                    return Math.round((this.profit / price) * 100);
+                    return (this.profit / price) * 100;
                 },
 
                 get roi() {
                     const selfCost = this.parseNum(this.selfCost);
                     if (!selfCost || this.profit <= 0) return 0;
-                    return Math.round((this.profit / selfCost) * 100);
+                    return (this.profit / selfCost) * 100;
                 },
 
-                // UI display helpers
+                // UI display helpers: calculations stay exact, only the output is trimmed
                 formatRub(val) {
-                    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(val);
+                    const num = this.parseNum(val);
+                    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(num);
+                },
+
+                // Hide the middle of a token, keeping the tail recognizable
+                maskToken(token) {
+                    const value = String(token || '');
+                    if (value.length <= 12) return value ? '••••••' : '';
+                    return `${value.slice(0, 6)}••••${value.slice(-4)}`;
+                },
+
+                // Number for display: up to 2 decimals, no trailing zeros
+                fmt(val, digits = 2) {
+                    const num = this.parseNum(val);
+                    if (!isFinite(num)) return '0';
+                    return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits, useGrouping: false }).format(num);
                 },
 
                 getPercentOfTotal(val) {
                     const price = this.parseNum(this.price);
                     if (!price) return 0;
-                    const percentage = (val / price) * 100;
-                    return Math.round(percentage * 10) / 10; // 1 decimal place
+                    return (val / price) * 100;
                 },
 
                 // Analytical advisor message builder
@@ -2125,7 +2348,7 @@
                     const goods = data && data.data && data.data.listGoods && data.data.listGoods[0];
                     const size = goods && goods.sizes && goods.sizes[0];
                     if (!size) return null;
-                    return Math.round(this.parseNum(size.discountedPrice) || this.parseNum(size.price)) || null;
+                    return this.parseNum(size.discountedPrice) || this.parseNum(size.price) || null;
                 },
 
                 async importFromCabinet() {
@@ -2279,25 +2502,25 @@
 ------------------------------------------
 Категория: ${this.selectedCategory.name}
 Модель продаж: ${this.saleModel.toUpperCase()}
-Комиссия WB: ${this.currentCommissionPercent}% (${this.formatRub(this.commissionRub)})${this.saleModel === 'fbs' ? ` [Отгрузка: ${this.deliveryHours} ч., изм.: ${this.deliveryHoursDelta >= 0 ? '+' : ''}${this.deliveryHoursDelta}%]` : ''}
-Габариты: ${this.lengthCm} × ${this.widthCm} × ${this.heightCm} см (${this.volumeLiters} л)
+Комиссия WB: ${this.fmt(this.currentCommissionPercent)}% (${this.formatRub(this.commissionRub)})${this.saleModel === 'fbs' ? ` [Отгрузка: ${this.deliveryHours} ч., изм.: ${this.deliveryHoursDelta >= 0 ? '+' : ''}${this.fmt(this.deliveryHoursDelta)}%]` : ''}
+Габариты: ${this.lengthCm} × ${this.widthCm} × ${this.heightCm} см (${this.fmt(this.volumeLiters)} л)
 ------------------------------------------
 Розничная цена (выручка): ${this.formatRub(this.price)}
 Скидка СПП (${this.sppPercent}%): -${this.formatRub(this.sppRub)}
 Цена для покупателя: ${this.formatRub(this.buyerPrice)}
 ------------------------------------------
 Себестоимость товара: ${this.formatRub(this.selfCost)}
-Логистика WB (${this.currentLogisticsPercent}%${this.logisticsMode === 'volume' ? `, по объёму ${this.volumeLiters} л` : ''}): ${this.formatRub(this.logisticsRub)}
-${this.saleModel === 'fbw' ? `Хранение WB (${this.currentStoragePercent}%): ${this.formatRub(this.storageRub)}\n` : ''}Маркетинг и реклама (${this.currentPromoPercent}%): ${this.formatRub(this.promoRub)}
+Логистика WB (${this.fmt(this.currentLogisticsPercent)}%${this.logisticsMode === 'volume' ? `, по объёму ${this.fmt(this.volumeLiters)} л` : ''}): ${this.formatRub(this.logisticsRub)}
+${this.saleModel === 'fbw' ? `Хранение WB (${this.fmt(this.currentStoragePercent)}%): ${this.formatRub(this.storageRub)}\n` : ''}Маркетинг и реклама (${this.fmt(this.currentPromoPercent)}%): ${this.formatRub(this.promoRub)}
 Прочие накладные расходы: ${this.formatRub(this.otherExpenses)}
 Налог (${this.taxPercent}%): ${this.formatRub(this.taxRub)}
 ------------------------------------------
 ИТОГО РАСХОДОВ: ${this.formatRub(this.totalExpenses)}
 ЧИСТАЯ ПРИБЫЛЬ: ${this.formatRub(this.profit)}
-Маржинальность: ${this.margin}%
-Рентабельность ROI: ${this.roi}%
+Маржинальность: ${this.fmt(this.margin)}%
+Рентабельность ROI: ${this.fmt(this.roi)}%
 ------------------------------------------
-Расчет выполнен в калькуляторе WB Income Pro v1.7.0`;
+Расчет выполнен в калькуляторе WB Income Pro v1.8.0`;
 
                     const tempTextarea = document.createElement('textarea');
                     tempTextarea.value = text;
